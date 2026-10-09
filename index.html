@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="DSV-Zombi — Minecraft сервер про войну и зомби. Создавай команды, приглашай друзей по ссылке, меняй название и цвет отряда.">
+  <title>DSV-Zombi — сервер войны и зомби</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="header">
+  <div class="container header__inner">
+    <a class="logo" href="#/home">DSV-<span>ZOMBI</span></a>
+    <nav class="nav">
+      <a href="#/home" data-navlink>Главная</a>
+      <a href="#/teams" data-navlink>Команды</a>
+      <a href="#/admin" data-navlink id="nav-admin" class="hidden">Админы</a>
+    </nav>
+    <div class="header__auth" id="header-auth"></div>
+  </div>
+</header>
+
+<div class="invite-banner hidden" id="invite-banner"></div>
+
+<main class="container">
+
+  <section id="view-home" class="view">
+    <div class="hero">
+      <div class="hero__badge">Minecraft 1.20.x · Война и зомби</div>
+      <h1 class="hero__title">DSV-<span>ZOMBI</span></h1>
+      <p class="hero__subtitle">Война закончилась. Но мир всё ещё горит — уже не от бомб, а от зубов мертвецов.</p>
+      <div class="hero__actions">
+        <a class="btn btn--primary" href="#/teams">Отряды и команды</a>
+        <a class="btn btn--ghost" href="#lore">Что произошло?</a>
+      </div>
+      <div class="server-ip">
+        <code>DSV-Zom.minerent.io</code>
+        <button class="btn btn--small btn--ghost" id="copy-ip" type="button">Копировать IP</button>
+      </div>
+    </div>
+
+    <section class="section" id="lore">
+      <h2 class="section__title">Что произошло?</h2>
+      <p class="section__lead">Короткая история мира, в который ты попадёшь. Читать по порядку.</p>
+      <div class="timeline">
+        <article class="tl-item">
+          <div class="tl-year">2045</div>
+          <h3>Великая война</h3>
+          <p>Последний конфликт уничтожил большие города. Тот, кто выжил, потерял дома, еду и привычный мир.</p>
+        </article>
+        <article class="tl-item">
+          <div class="tl-year">2046</div>
+          <h3>Укрытия DSV</h3>
+          <p>Выжившие построили глубокие бункеры под названием DSV. Там ещё была чистая вода, свет и оружие.</p>
+        </article>
+        <article class="tl-item">
+          <div class="tl-year">2047</div>
+          <h3>Вирус Z-12</h3>
+          <p>Учёные искали лекарство от последствий войны. Вместо него они создали вирус, который превращал людей в мертвецов. Ошибка стоила миллионов жизней.</p>
+        </article>
+        <article class="tl-item">
+          <div class="tl-year">2048</div>
+          <h3>Падение бункеров</h3>
+          <p>Заражённые вырывались из бункеров один за другим. Началась эпидемия, которую назвали Чёрной волной.</p>
+        </article>
+        <article class="tl-item">
+          <div class="tl-year">2049</div>
+          <h3>Отряды сопротивления</h3>
+          <p>Оставшиеся в живых поняли: поодиночке не выжить. Так появились отряды — с общим лагерем, припасами и правилами.</p>
+        </article>
+        <article class="tl-item">
+          <div class="tl-year">Сегодня</div>
+          <h3>DSV-Zombi</h3>
+          <p>Ты — один из выживших. Выбирай отряд или создавай свой, собирай людей и держись до рассвета.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section__title">Как начать играть</h2>
+      <p class="section__lead">Три простых шага — и ты в игре.</p>
+      <div class="steps">
+        <div class="step">
+          <span class="step__num">1</span>
+          <h3>Зайди на сервер</h3>
+          <p>Открой Minecraft версии 1.20.x и добавь адрес <code>DSV-Zom.minerent.io</code>.</p>
+        </div>
+        <div class="step">
+          <span class="step__num">2</span>
+          <h3>Создай аккаунт на сайте</h3>
+          <p>Регистрация нужна, чтобы вступать в команды и управлять ими.</p>
+        </div>
+        <div class="step">
+          <span class="step__num">3</span>
+          <h3>Найди отряд</h3>
+          <p>Открой список команд или попроси друга прислать ссылку-приглашение.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section__title">Зачем нужны команды</h2>
+      <p class="section__lead">В одиночку против волны зомби — это ужин. Команда — это шанс выжить.</p>
+      <div class="steps">
+        <div class="step">
+          <span class="step__num">A</span>
+          <h3>Создавай и настраивай</h3>
+          <p>Задавай команде название, описание и свой цвет — её видно в общем списке.</p>
+        </div>
+        <div class="step">
+          <span class="step__num">B</span>
+          <h3>Приглашай по ссылке</h3>
+          <p>Глава команды создаёт ссылку-приглашение и кидает её друзьям. Друг открывает ссылку — и вступает.</p>
+        </div>
+        <div class="step">
+          <span class="step__num">C</span>
+          <h3>Назначай главу</h3>
+          <p>Глава видит весь состав, меняет название и цвет, исключает лишних и передаёт роль другому игроку.</p>
+        </div>
+      </div>
+      <div class="section__cta">
+        <a class="btn btn--primary" href="#/teams">Перейти к командам</a>
+      </div>
+    </section>
+  </section>
+
+  <section id="view-teams" class="view hidden">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">Команды</h1>
+        <p class="section__lead">Список всех отрядов сервера. Открой команду, чтобы увидеть её состав.</p>
+      </div>
+      <div class="page-actions" id="teams-actions"></div>
+    </div>
+    <div class="teams-grid" id="teams-list"></div>
+  </section>
+
+  <section id="view-team" class="view hidden">
+    <div id="team-detail"></div>
+  </section>
+
+  <section id="view-admin" class="view hidden">
+    <div id="admin-detail"></div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="container footer__inner">
+    <div>DSV-Zombi — фанатский сервер Minecraft. Не связан с Mojang Studios и Microsoft.</div>
+    <div>© 2026 DSV-Zombi</div>
+  </div>
+</footer>
+
+<div class="modal hidden" id="modal-auth">
+  <div class="modal__box">
+    <button class="modal__close" type="button" data-close-modal aria-label="Закрыть">&times;</button>
+    <div class="tabs">
+      <button class="tab active" type="button" data-authtab="login">Вход</button>
+      <button class="tab" type="button" data-authtab="register">Регистрация</button>
+    </div>
+    <form id="form-login" class="auth-form">
+      <label class="field"><span>Ник</span><input name="nick" maxlength="16" autocomplete="username" required></label>
+      <label class="field"><span>Пароль</span><input name="pass" type="password" autocomplete="current-password" required></label>
+      <div class="form-error" id="err-login"></div>
+      <button class="btn btn--primary btn--block">Войти</button>
+      <p class="hint">Создавать команды может только аккаунт <b>Faranatic</b>.</p>
+    </form>
+    <form id="form-register" class="auth-form hidden">
+      <label class="field"><span>Ник (3–16 символов: латиница, цифры, _)</span><input name="nick" maxlength="16" autocomplete="username" required></label>
+      <label class="field"><span>Пароль (минимум 6 символов)</span><input name="pass" type="password" autocomplete="new-password" required></label>
+      <label class="field"><span>Повтори пароль</span><input name="pass2" type="password" autocomplete="new-password" required></label>
+      <div class="form-error" id="err-register"></div>
+      <button class="btn btn--primary btn--block">Создать аккаунт</button>
+      <p class="hint">После регистрации сразу можно вступать в команды по приглашению.</p>
+    </form>
+  </div>
+</div>
+
+<div class="modal hidden" id="modal-create">
+  <div class="modal__box">
+    <button class="modal__close" type="button" data-close-modal aria-label="Закрыть">&times;</button>
+    <h2 class="modal__title">Новая команда</h2>
+    <form id="form-create">
+      <label class="field"><span>Название команды</span><input name="name" maxlength="24" placeholder="Например: Серые волки" required></label>
+      <label class="field"><span>Описание (необязательно)</span><textarea name="desc" maxlength="120" placeholder="Коротко о вашем отряде"></textarea></label>
+      <div class="field">
+        <span>Цвет команды</span>
+        <div class="swatches" id="create-swatches"></div>
+      </div>
+      <div class="form-error" id="err-create"></div>
+      <button class="btn btn--primary btn--block">Создать команду</button>
+    </form>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
