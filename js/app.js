@@ -38,6 +38,7 @@ const state = {
   messages: [],
   chatTeamId: null,
   chatError: false,
+  chatErrorMsg: '',
   chatDraft: ''
 };
 
@@ -674,8 +675,9 @@ async function fetchMessages(teamId) {
   const { data, error } = await sb.from('team_messages')
     .select('id,team_id,nick,body,created_at')
     .eq('team_id', teamId).order('created_at', { ascending: true }).limit(300);
-  if (error) { state.chatError = true; state.messages = []; return; }
+  if (error) { state.chatError = true; state.chatErrorMsg = error.message || ''; state.messages = []; return; }
   state.chatError = false;
+  state.chatErrorMsg = '';
   state.messages = data || [];
 }
 
@@ -698,7 +700,8 @@ function renderChatLog() {
   const log = $('#chat-log');
   if (!log) return;
   if (state.chatError) {
-    log.innerHTML = `<div class="chat-empty">Чат ещё не настроен на сервере.<br>Нужно добавить таблицу <b>team_messages</b> в Supabase.</div>`;
+    log.innerHTML = `<div class="chat-empty">Чат ещё не настроен на сервере.<br>Нужно добавить таблицу <b>team_messages</b> в Supabase.` +
+      (state.chatErrorMsg ? `<br><span class="muted">(${esc(state.chatErrorMsg)})</span>` : '') + `</div>`;
     return;
   }
   if (!state.messages.length) {
@@ -737,7 +740,7 @@ async function sendChatMessage(body) {
   const { error } = await sb.from('team_messages').insert({
     team_id: state.chatTeamId, nick: state.user.nick, body: text
   });
-  if (error) return 'Не удалось отправить. Возможно, чат ещё не настроен на сервере.';
+  if (error) { console.error(error); return 'Не удалось отправить: ' + (error.message || 'чат не настроен на сервере'); }
   await fetchMessages(state.chatTeamId);
   renderChatLog();
   return null;
