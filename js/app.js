@@ -1118,15 +1118,16 @@ function openChangePassword() {
 
 /* ===================== Аватар ===================== */
 async function uploadAvatar(file) {
-  if (!sb || !state.user) return null;
+  if (!sb || !state.user) return { error: 'Сначала войди в аккаунт.' };
   const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
   const path = state.user.id + '/' + Date.now() + '.' + ext;
   const { error } = await sb.storage.from('avatars').upload(path, file, {
     upsert: true, cacheControl: '3600', contentType: file.type || 'image/png'
   });
-  if (error) { console.error(error); return null; }
+  if (error) { console.error(error); return { error: error.message || String(error) }; }
   const { data } = sb.storage.from('avatars').getPublicUrl(path);
-  return data ? data.publicUrl : null;
+  if (!data || !data.publicUrl) return { error: 'Не удалось получить ссылку на файл.' };
+  return { url: data.publicUrl };
 }
 
 async function saveAvatarUrl(url) {
@@ -1190,10 +1191,10 @@ function openAvatarModal() {
     const btn = $('button[type="submit"]', overlay);
     if (btn) btn.disabled = true;
     errEl.textContent = 'Загружаем…';
-    const url = await uploadAvatar(f);
+    const up = await uploadAvatar(f);
     if (btn) btn.disabled = false;
-    if (!url) { errEl.textContent = 'Не удалось загрузить. Нужен бакет «avatars» в Supabase.'; return; }
-    const msg = await saveAvatarUrl(url);
+    if (up.error) { errEl.textContent = 'Ошибка загрузки: ' + up.error; return; }
+    const msg = await saveAvatarUrl(up.url);
     if (msg) { errEl.textContent = msg; return; }
     overlay.remove(); syncBodyScroll();
   });
