@@ -168,7 +168,7 @@
       <label class="field"><span>Пароль</span><input name="pass" type="password" autocomplete="current-password" required></label>
       <div class="form-error" id="err-login"></div>
       <button class="btn btn--primary btn--block">Войти</button>
-      <p class="hint">Создавать команды может только аккаунт <b>Faranatic</b>.</p>
+      <p class="hint">Создавать команды могут основатель и админы сервера.</p>
     </form>
     <form id="form-register" class="auth-form hidden">
       <label class="field"><span>Ник (3–16 символов: латиница, цифры, _)</span><input name="nick" maxlength="16" autocomplete="username" required></label>
@@ -200,6 +200,8 @@
 
 <div class="toast hidden" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
