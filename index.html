@@ -20,6 +20,7 @@
       <a href="#/home" data-navlink>Главная</a>
       <a href="#/teams" data-navlink>Команды</a>
       <a href="#/account" data-navlink>Кабинет</a>
+      <a href="#/map" data-navlink>Карта</a>
       <a href="#/admin" data-navlink id="nav-admin" class="hidden">Админы</a>
     </nav>
     <div class="header__auth" id="header-auth"></div>
@@ -155,6 +156,20 @@
 
   <section id="view-account" class="view hidden">
     <div id="account-detail"></div>
+  </section>
+
+  <section id="view-map" class="view hidden">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">Карта территорий</h1>
+        <p class="section__lead">Живая карта сервера с зонами, которые контролируют команды.</p>
+      </div>
+      <div class="page-actions">
+        <a class="btn btn--ghost" id="map-open-tab" target="_blank" rel="noopener">Открыть на весь экран</a>
+      </div>
+    </div>
+    <div class="map-legend" id="map-legend"></div>
+    <div class="map-frame" id="map-frame"></div>
   </section>
 
 </main>
