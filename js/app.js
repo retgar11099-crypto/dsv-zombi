@@ -1,30 +1,24 @@
 'use strict';
 
-/* ===================== Хранилище ===================== */
-const store = {
-  get(key, fallback) {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : fallback;
-    } catch (e) {
-      return fallback;
-    }
-  },
-  set(key, value) {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
-  },
-  remove(key) {
-    try { localStorage.removeItem(key); } catch (e) {}
-  }
-};
+/* =========================================================
+   DSV-Zombi — клиент на Supabase (общая база данных)
+   Настройки подключения лежат в js/config.js
+   ========================================================= */
 
-const K_USERS = 'dsv_users';
-const K_SESSION = 'dsv_session';
-const K_TEAMS = 'dsv_teams';
-const K_INVITE = 'dsv_pending_invite';
+const CFG = window.DSV_CONFIG || {};
+const SUPABASE_URL = (CFG.SUPABASE_URL || '').trim();
+const SUPABASE_ANON_KEY = (CFG.SUPABASE_ANON_KEY || '').trim();
+const EMAIL_DOMAIN = 'players.dsv-zombi.local';
+
+const CONFIGURED = /^https?:\/\//i.test(SUPABASE_URL) && SUPABASE_ANON_KEY.length > 20;
+let sb = null;
+if (CONFIGURED && window.supabase) {
+  try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); }
+  catch (e) { sb = null; }
+}
 
 const ADMIN_NICK = 'Faranatic';
-const ADMIN_PASS = 'ret345464';
+const K_INVITE = 'dsv_pending_invite';
 
 const COLORS = [
   '#4cd137', '#2ecc71', '#00d2d3', '#3498db', '#54a0ff', '#a55eea',
@@ -32,9 +26,13 @@ const COLORS = [
 ];
 
 const state = {
-  user: null,
-  teams: [],
-  inviteToken: store.get(K_INVITE, null),
+  user: null,            // { id, nick, role }
+  profiles: [],          // [{ id, nick, role }]
+  rawTeams: [],          // строки из таблицы teams
+  rawMembers: [],        // [{ team_id, nick }]
+  rawVotes: [],          // [{ team_id, voter, candidate }]
+  teams: [],             // собранные объекты для интерфейса
+  inviteToken: localStorage.getItem(K_INVITE) || null,
   pendingAccept: null,
   createColor: COLORS[0]
 };
@@ -49,19 +47,28 @@ function esc(str) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-function uid() {
-  return 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-}
-
 function makeToken() {
   return Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
 }
 
-function roleOf(user) {
-  if (!user) return 'player';
-  if (user.role) return user.role;
-  return (user.nick && user.nick.toLowerCase() === ADMIN_NICK.toLowerCase()) ? 'founder' : 'player';
+function sameNick(a, b) {
+  return !!a && !!b && String(a).toLowerCase() === String(b).toLowerCase();
 }
+
+function formatDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleString('ru-RU', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+}
+
+function roleRank(role) {
+  return role === 'founder' ? 2 : (role === 'admin' ? 1 : 0);
+}
+
 function isFounder() {
   return !!state.user && (state.user.role === 'founder' ||
     state.user.nick.toLowerCase() === ADMIN_NICK.toLowerCase());
@@ -69,46 +76,21 @@ function isFounder() {
 function isAdmin() {
   return !!state.user && (state.user.role === 'admin' || state.user.role === 'founder' || isFounder());
 }
-
-function saveTeams() { store.set(K_TEAMS, state.teams); }
-function getTeam(id) { return state.teams.find(t => t.id === id) || null; }
-function teamOfUser(nick) {
-  if (!nick) return null;
-  return state.teams.find(t => t.members.some(m => m.toLowerCase() === nick.toLowerCase())) || null;
+function findUser(nick) {
+  return state.profiles.find(u => sameNick(u.nick, nick)) || null;
 }
-function sameNick(a, b) {
-  return !!a && !!b && a.toLowerCase() === b.toLowerCase();
+function roleOf(user) {
+  if (!user) return 'player';
+  return user.role || 'player';
 }
-function isMember(team, nick) {
-  return !!nick && team.members.some(m => m.toLowerCase() === nick.toLowerCase());
-}
-function isLeaderOf(team, nick) { return sameNick(team.leader, nick); }
-function isDeputyOf(team, nick) { return sameNick(team.deputy, nick); }
 function isPrivilegedNick(nick) {
-  const r = roleOf(findUser(nick));
-  return r === 'founder' || r === 'admin';
+  return roleRank(roleOf(findUser(nick))) >= 1;
 }
 
-// Приглашать и исключать: основатель, админ, глава или зам
-function canManageTeam(team) {
-  if (!state.user || !team) return false;
-  if (isAdmin()) return true;
-  const me = state.user.nick;
-  return isLeaderOf(team, me) || isDeputyOf(team, me);
-}
-// Менять название и цвет: основатель, админ или глава
-function canEditTeam(team) {
-  if (!state.user || !team) return false;
-  if (isAdmin()) return true;
-  return isLeaderOf(team, state.user.nick);
-}
-// Назначать главу может только основатель или админ
-function canAppointLeader() { return isAdmin(); }
-// Назначать зама: основатель, админ или глава отряда
-function canAppointDeputy(team) {
-  if (!state.user || !team) return false;
-  if (isAdmin()) return true;
-  return isLeaderOf(team, state.user.nick);
+function saveInviteToken(token) {
+  state.inviteToken = token;
+  if (token) localStorage.setItem(K_INVITE, token);
+  else localStorage.removeItem(K_INVITE);
 }
 
 function toast(msg, type) {
@@ -116,7 +98,7 @@ function toast(msg, type) {
   el.textContent = msg;
   el.className = 'toast' + (type === 'err' ? ' err' : '');
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => el.classList.add('hidden'), 2600);
+  toast._t = setTimeout(() => el.classList.add('hidden'), 3200);
 }
 
 function copyText(text, msg) {
@@ -127,66 +109,86 @@ function copyText(text, msg) {
     ta.style.opacity = '0';
     document.body.appendChild(ta);
     ta.select();
-    try {
-      document.execCommand('copy');
-      toast(msg);
-    } catch (e) {
-      toast('Не удалось скопировать', 'err');
-    }
+    try { document.execCommand('copy'); toast(msg); } catch (e) { toast('Не удалось скопировать', 'err'); }
     ta.remove();
   };
   if (navigator.clipboard && window.isSecureContext) {
     navigator.clipboard.writeText(text).then(() => toast(msg)).catch(fallback);
-  } else {
-    fallback();
+  } else fallback();
+}
+
+/* ===================== Загрузка данных ===================== */
+function rebuildTeams() {
+  state.teams = state.rawTeams.map(t => {
+    const members = state.rawMembers.filter(m => m.team_id === t.id).map(m => m.nick);
+    const votes = {};
+    state.rawVotes.filter(v => v.team_id === t.id).forEach(v => { votes[v.voter] = v.candidate; });
+    return {
+      id: t.id, name: t.name, desc: t.description || '', color: t.color || '#4cd137',
+      leader: t.leader_nick || null, deputy: t.deputy_nick || null, invite: t.invite || null,
+      members: members, vote: t.vote_open ? { open: true, votes: votes } : null
+    };
+  });
+}
+
+async function syncData() {
+  if (!sb) return;
+  const [p, t, m, v] = await Promise.all([
+    sb.from('profiles').select('id,nick,role,created_at'),
+    sb.from('teams').select('*'),
+    sb.from('team_members').select('team_id,nick'),
+    sb.from('votes').select('team_id,voter,candidate')
+  ]);
+  if (p.error || t.error || m.error || v.error) {
+    toast('Не удалось загрузить данные', 'err');
+    return;
   }
-}
+  state.profiles = p.data || [];
+  state.rawTeams = t.data || [];
+  state.rawMembers = m.data || [];
+  state.rawVotes = v.data || [];
 
-/* ===================== Пользователи ===================== */
-function users() { return store.get(K_USERS, []); }
-
-function ensureAdmin() {
-  const list = users();
-  const idx = list.findIndex(u => u.nick.toLowerCase() === ADMIN_NICK.toLowerCase());
-  if (idx === -1) {
-    list.push({ nick: ADMIN_NICK, pass: ADMIN_PASS, role: 'founder' });
-  } else {
-    list[idx].role = 'founder';
-    if (!list[idx].pass) list[idx].pass = ADMIN_PASS;
+  if (state.user) {
+    const me = state.profiles.find(x => x.id === state.user.id);
+    if (me) { state.user.nick = me.nick; state.user.role = me.role; }
   }
-  store.set(K_USERS, list);
-}
-
-function findUser(nick) {
-  return users().find(u => u.nick.toLowerCase() === String(nick).toLowerCase()) || null;
-}
-
-function afterAuth() {
-  closeModal($('#modal-auth'));
+  rebuildTeams();
   renderAll();
-  toast('С возвращением, ' + state.user.nick + '!');
-  if (state.pendingAccept) {
-    const token = state.pendingAccept;
-    state.pendingAccept = null;
-    acceptInvite(token);
-  }
+}
+
+function getTeam(id) { return state.teams.find(t => t.id === id) || null; }
+function teamOfUser(nick) {
+  if (!nick) return null;
+  return state.teams.find(t => t.members.some(m => sameNick(m, nick))) || null;
+}
+function isMember(team, nick) { return !!nick && team.members.some(m => sameNick(m, nick)); }
+function isLeaderOf(team, nick) { return sameNick(team.leader, nick); }
+function isDeputyOf(team, nick) { return sameNick(team.deputy, nick); }
+
+function canManageTeam(team) {
+  if (!state.user || !team) return false;
+  if (isAdmin()) return true;
+  const me = state.user.nick;
+  return isLeaderOf(team, me) || isDeputyOf(team, me);
+}
+function canEditTeam(team) {
+  if (!state.user || !team) return false;
+  if (isAdmin()) return true;
+  return isLeaderOf(team, state.user.nick);
+}
+function canAppointLeader() { return isAdmin(); }
+function canAppointDeputy(team) {
+  if (!state.user || !team) return false;
+  if (isAdmin()) return true;
+  return isLeaderOf(team, state.user.nick);
 }
 
 /* ===================== Модальные окна ===================== */
 function syncBodyScroll() {
   document.body.style.overflow = document.querySelector('.modal:not(.hidden)') ? 'hidden' : '';
 }
-
-function openModal(el) {
-  el.classList.remove('hidden');
-  syncBodyScroll();
-}
-
-function closeModal(el) {
-  if (!el) return;
-  el.classList.add('hidden');
-  syncBodyScroll();
-}
+function openModal(el) { el.classList.remove('hidden'); syncBodyScroll(); }
+function closeModal(el) { if (!el) return; el.classList.add('hidden'); syncBodyScroll(); }
 
 function formModal(opts) {
   const { title, fields, submitText, onSubmit } = opts;
@@ -211,7 +213,6 @@ function formModal(opts) {
     `<form>${inputsHtml}<div class="form-error"></div>` +
     `<button class="btn btn--primary btn--block">${esc(submitText || 'Сохранить')}</button></form>` +
     `</div>`;
-
   document.body.appendChild(overlay);
 
   const picks = {};
@@ -221,17 +222,17 @@ function formModal(opts) {
   });
 
   const errorEl = $('.form-error', overlay);
-  $('form', overlay).addEventListener('submit', e => {
+  const btn = $('button[type]', $('form', overlay));
+  $('form', overlay).addEventListener('submit', async e => {
     e.preventDefault();
     const values = {};
     fields.forEach(f => {
       if (f.type === 'swatches') values[f.name] = picks[f.name];
-      else {
-        const input = $(`[name="${f.name}"]`, overlay);
-        values[f.name] = input ? input.value.trim() : '';
-      }
+      else { const input = $(`[name="${f.name}"]`, overlay); values[f.name] = input ? input.value.trim() : ''; }
     });
-    const err = onSubmit(values);
+    if (btn) btn.disabled = true;
+    const err = await onSubmit(values);
+    if (btn) btn.disabled = false;
     if (err) { errorEl.textContent = err; return; }
     overlay.remove();
     syncBodyScroll();
@@ -273,7 +274,6 @@ function showView(id) {
   const view = $('#view-' + id);
   if (view) view.classList.remove('hidden');
 }
-
 function setActiveNav(href) {
   $$('[data-navlink]').forEach(a => a.classList.toggle('active', a.getAttribute('href') === href));
 }
@@ -282,8 +282,7 @@ function route() {
   const hash = location.hash || '#/home';
 
   if (hash.indexOf('#/invite/') === 0) {
-    state.inviteToken = decodeURIComponent(hash.slice('#/invite/'.length));
-    store.set(K_INVITE, state.inviteToken);
+    saveInviteToken(decodeURIComponent(hash.slice('#/invite/'.length)));
     showView('teams');
     setActiveNav('#/teams');
     renderTeams();
@@ -301,13 +300,8 @@ function route() {
   }
 
   if (hash.indexOf('#/team/') === 0) {
-    const id = hash.slice('#/team/'.length);
-    const team = getTeam(id);
-    if (!team) {
-      toast('Команда не найдена', 'err');
-      location.hash = '#/teams';
-      return;
-    }
+    const team = getTeam(hash.slice('#/team/'.length));
+    if (!team) { toast('Команда не найдена', 'err'); location.hash = '#/teams'; return; }
     showView('team');
     setActiveNav('#/teams');
     renderTeamDetail(team);
@@ -316,11 +310,7 @@ function route() {
   }
 
   if (hash === '#/admin') {
-    if (!isFounder()) {
-      toast('Раздел доступен только основателю', 'err');
-      location.hash = '#/home';
-      return;
-    }
+    if (!isFounder()) { toast('Раздел доступен только основателю', 'err'); location.hash = '#/home'; return; }
     showView('admin');
     setActiveNav('#/admin');
     renderAdmin();
@@ -351,6 +341,10 @@ function renderNav() {
 
 function renderHeader() {
   const box = $('#header-auth');
+  if (!sb) {
+    box.innerHTML = `<span class="hint">Supabase не настроен: заполни js/config.js</span>`;
+    return;
+  }
   if (!state.user) {
     box.innerHTML =
       `<button class="btn btn--small btn--ghost" type="button" data-act="open-login">Вход</button>` +
@@ -392,9 +386,7 @@ function renderTeams() {
   }
 
   list.innerHTML = state.teams.map(t => {
-    const leaderHtml = t.leader
-      ? `<b>${esc(t.leader)}</b>`
-      : `<span class="tag-noleader">нет главы</span>`;
+    const leaderHtml = t.leader ? `<b>${esc(t.leader)}</b>` : `<span class="tag-noleader">нет главы</span>`;
     return (
       `<article class="team-card" style="--tc:${t.color}">` +
       `<div class="team-card__stripe"></div>` +
@@ -490,9 +482,7 @@ function renderTeamDetail(team) {
       `</div>`;
   }
 
-  if (member || isAdmin()) {
-    panels += votePanelHtml(team, me, member);
-  }
+  if (member || isAdmin()) panels += votePanelHtml(team, me, member);
 
   if (member) {
     panels +=
@@ -533,8 +523,7 @@ function renderTeamDetail(team) {
 }
 
 function voteCounts(team) {
-  const v = team.vote;
-  const votes = v && v.votes ? v.votes : {};
+  const votes = team.vote && team.vote.votes ? team.vote.votes : {};
   return team.members.map(n => {
     const count = Object.keys(votes).filter(voter => sameNick(votes[voter], n)).length;
     return { nick: n, count: count };
@@ -546,8 +535,7 @@ function votePanelHtml(team, me, member) {
   let h = `<div class="panel"><h3>Голосование за главу</h3>`;
 
   if (!v || !v.open) {
-    h +=
-      `<p class="panel__sub">Основатель или админ запускает голосование, а участники выбирают нового главу отряда.</p>`;
+    h += `<p class="panel__sub">Основатель или админ запускает голосование, а участники выбирают нового главу отряда.</p>`;
     if (isAdmin()) {
       h += `<button class="btn btn--small btn--primary" type="button" data-act="start-vote">Начать голосование</button>`;
     } else if (member) {
@@ -576,7 +564,6 @@ function votePanelHtml(team, me, member) {
         `</div>`;
     });
     h += `</div>`;
-
     if (isAdmin()) {
       h += `<div class="panel__row">`;
       if (leaders.length === 1) {
@@ -588,7 +575,6 @@ function votePanelHtml(team, me, member) {
       h += `</div>`;
     }
   }
-
   h += `</div>`;
   return h;
 }
@@ -597,11 +583,7 @@ function votePanelHtml(team, me, member) {
 function renderInviteBanner() {
   const el = $('#invite-banner');
   const token = state.inviteToken;
-  if (!token) {
-    el.classList.add('hidden');
-    el.innerHTML = '';
-    return;
-  }
+  if (!token) { el.classList.add('hidden'); el.innerHTML = ''; return; }
 
   const team = state.teams.find(t => t.invite === token);
   let body;
@@ -636,43 +618,29 @@ function renderInviteBanner() {
 }
 
 function clearInvite() {
-  state.inviteToken = null;
   state.pendingAccept = null;
-  store.remove(K_INVITE);
+  saveInviteToken(null);
   renderInviteBanner();
 }
 
-function acceptInvite(token) {
-  if (!state.user) {
-    state.pendingAccept = token;
-    openAuth('login');
-    return;
-  }
+async function acceptInvite(token) {
+  if (!state.user) { state.pendingAccept = token; openAuth('login'); return; }
   const team = state.teams.find(t => t.invite === token);
-  if (!team) {
-    toast('Ссылка-приглашение недействительна', 'err');
-    clearInvite();
-    return;
-  }
+  if (!team) { toast('Ссылка-приглашение недействительна', 'err'); clearInvite(); return; }
   if (isMember(team, state.user.nick)) {
-    toast('Ты уже в этом отряде');
-    clearInvite();
-    location.hash = '#/team/' + team.id;
-    return;
+    toast('Ты уже в этом отряде'); clearInvite(); location.hash = '#/team/' + team.id; return;
   }
-  team.members.push(state.user.nick);
-  saveTeams();
+  const { error } = await sb.from('team_members').insert({ team_id: team.id, nick: state.user.nick });
+  if (error) { toast('Не удалось вступить: ' + error.message, 'err'); return; }
   clearInvite();
   toast('Ты вступил в отряд «' + team.name + '»');
   location.hash = '#/team/' + team.id;
+  await syncData();
 }
 
 /* ===================== Действия с командами ===================== */
 function openCreateModal() {
-  if (!isAdmin()) {
-    toast('Команды создаёт только основатель или админ', 'err');
-    return;
-  }
+  if (!isAdmin()) { toast('Команды создаёт только основатель или админ', 'err'); return; }
   const modal = $('#modal-create');
   $('#err-create').textContent = '';
   $('#form-create').reset();
@@ -681,18 +649,31 @@ function openCreateModal() {
   openModal(modal);
 }
 
+async function createTeam(name, desc) {
+  const { data, error } = await sb.from('teams')
+    .insert({ name: name, description: desc, color: state.createColor, invite: null })
+    .select().single();
+  if (error) return 'Не удалось создать команду: ' + error.message;
+  const { error: me } = await sb.from('team_members').insert({ team_id: data.id, nick: state.user.nick });
+  if (me) return 'Команда создана, но не удалось добавить тебя: ' + me.message;
+  await syncData();
+  toast('Команда «' + name + '» создана');
+  location.hash = '#/team/' + data.id;
+  return null;
+}
+
 function renameTeam(team) {
   if (!canEditTeam(team)) { toast('Недостаточно прав', 'err'); return; }
   formModal({
     title: 'Сменить название',
     fields: [{ name: 'name', label: 'Название команды', maxlength: 24, value: team.name }],
     submitText: 'Сохранить',
-    onSubmit(v) {
+    async onSubmit(v) {
       const name = v.name.trim();
       if (name.length < 2) return 'Название слишком короткое (минимум 2 символа).';
-      team.name = name;
-      saveTeams();
-      renderAll();
+      const { error } = await sb.from('teams').update({ name: name }).eq('id', team.id);
+      if (error) return 'Ошибка: ' + error.message;
+      await syncData();
       toast('Название обновлено');
       return null;
     }
@@ -705,149 +686,151 @@ function recolorTeam(team) {
     title: 'Сменить цвет',
     fields: [{ name: 'color', label: 'Цвет отряда', type: 'swatches', value: team.color }],
     submitText: 'Сохранить',
-    onSubmit(v) {
-      team.color = v.color;
-      saveTeams();
-      renderAll();
+    async onSubmit(v) {
+      const { error } = await sb.from('teams').update({ color: v.color }).eq('id', team.id);
+      if (error) return 'Ошибка: ' + error.message;
+      await syncData();
       toast('Цвет обновлён');
       return null;
     }
   });
 }
 
-function makeLeader(team, nick) {
+async function makeLeader(team, nick) {
   if (!canAppointLeader()) { toast('Назначать главу может только основатель или админ', 'err'); return; }
   if (!isMember(team, nick)) { toast('Игрока нет в отряде', 'err'); return; }
-  team.leader = nick;
-  if (sameNick(team.deputy, nick)) team.deputy = null;
-  saveTeams();
-  renderAll();
+  const patch = { leader_nick: nick };
+  if (sameNick(team.deputy, nick)) patch.deputy_nick = null;
+  const { error } = await sb.from('teams').update(patch).eq('id', team.id);
+  if (error) { toast('Ошибка: ' + error.message, 'err'); return; }
+  await syncData();
   toast('Теперь глава отряда — ' + nick);
 }
 
-function makeDeputy(team, nick) {
+async function makeDeputy(team, nick) {
   if (!canAppointDeputy(team)) { toast('Недостаточно прав', 'err'); return; }
   if (!isMember(team, nick)) { toast('Игрока нет в отряде', 'err'); return; }
   if (isLeaderOf(team, nick)) { toast('Глава не может быть замом', 'err'); return; }
-  team.deputy = nick;
-  saveTeams();
-  renderAll();
+  const { error } = await sb.from('teams').update({ deputy_nick: nick }).eq('id', team.id);
+  if (error) { toast('Ошибка: ' + error.message, 'err'); return; }
+  await syncData();
   toast('Заместитель главы — ' + nick);
 }
 
-function removeDeputy(team, nick) {
+async function removeDeputy(team, nick) {
   if (!canAppointDeputy(team)) { toast('Недостаточно прав', 'err'); return; }
   if (!isDeputyOf(team, nick)) return;
-  team.deputy = null;
-  saveTeams();
-  renderAll();
+  const { error } = await sb.from('teams').update({ deputy_nick: null }).eq('id', team.id);
+  if (error) { toast('Ошибка: ' + error.message, 'err'); return; }
+  await syncData();
   toast('Заместитель снят: ' + nick);
 }
 
-function kickMember(team, nick) {
+async function kickMember(team, nick) {
   if (!canManageTeam(team)) { toast('Недостаточно прав', 'err'); return; }
   if (isLeaderOf(team, nick)) { toast('Сначала назначь другого главу', 'err'); return; }
   if (isPrivilegedNick(nick) && !isAdmin()) { toast('Нельзя исключить админа или основателя', 'err'); return; }
   if (state.user && sameNick(nick, state.user.nick)) { toast('Чтобы выйти, нажми «Покинуть команду»', 'err'); return; }
-  team.members = team.members.filter(m => !sameNick(m, nick));
-  if (isDeputyOf(team, nick)) team.deputy = null;
-  saveTeams();
-  renderAll();
+  const { error } = await sb.from('team_members').delete().eq('team_id', team.id).eq('nick', nick);
+  if (error) { toast('Ошибка: ' + error.message, 'err'); return; }
+  if (isDeputyOf(team, nick)) await sb.from('teams').update({ deputy_nick: null }).eq('id', team.id);
+  await syncData();
   toast(nick + ' исключён из отряда');
 }
 
-function leaveTeam(team) {
+async function leaveTeam(team) {
   if (!state.user || !isMember(team, state.user.nick)) return;
   const nick = state.user.nick;
-  team.members = team.members.filter(m => !sameNick(m, nick));
-  if (isLeaderOf(team, nick)) team.leader = null;
-  if (isDeputyOf(team, nick)) team.deputy = null;
-  if (team.vote && team.vote.votes) delete team.vote.votes[nick];
-  saveTeams();
+  await sb.from('team_members').delete().eq('team_id', team.id).eq('nick', nick);
+  const patch = {};
+  if (isLeaderOf(team, nick)) patch.leader_nick = null;
+  if (isDeputyOf(team, nick)) patch.deputy_nick = null;
+  if (Object.keys(patch).length) await sb.from('teams').update(patch).eq('id', team.id);
+  await sb.from('votes').delete().eq('team_id', team.id).eq('voter', nick);
   toast('Ты покинул отряд «' + team.name + '»');
   location.hash = '#/teams';
-  renderAll();
+  await syncData();
 }
 
 /* ===================== Голосование за главу ===================== */
-function startVote(team) {
+async function startVote(team) {
   if (!isAdmin()) { toast('Голосование запускает основатель или админ', 'err'); return; }
   if (team.members.length < 2) { toast('Нужно минимум 2 участника', 'err'); return; }
-  team.vote = { open: true, votes: {} };
-  saveTeams();
-  renderAll();
+  await sb.from('votes').delete().eq('team_id', team.id);
+  const { error } = await sb.from('teams').update({ vote_open: true }).eq('id', team.id);
+  if (error) { toast('Ошибка: ' + error.message, 'err'); return; }
+  await syncData();
   toast('Голосование за главу запущено');
 }
 
-function castVote(team, candidate) {
+async function castVote(team, candidate) {
   if (!state.user || !isMember(team, state.user.nick)) { toast('Голосовать могут только участники отряда', 'err'); return; }
   if (!team.vote || !team.vote.open) { toast('Голосование не активно', 'err'); return; }
   if (!isMember(team, candidate)) { toast('Такого участника нет в отряде', 'err'); return; }
-  team.vote.votes[state.user.nick] = candidate;
-  saveTeams();
-  renderAll();
+  const { error } = await sb.from('votes').upsert(
+    { team_id: team.id, voter: state.user.nick, candidate: candidate },
+    { onConflict: 'team_id,voter' }
+  );
+  if (error) { toast('Ошибка: ' + error.message, 'err'); return; }
+  await syncData();
   toast('Голос отдан: ' + candidate);
 }
 
-function cancelVote(team) {
+async function cancelVote(team) {
   if (!isAdmin()) return;
-  team.vote = null;
-  saveTeams();
-  renderAll();
+  await sb.from('votes').delete().eq('team_id', team.id);
+  await sb.from('teams').update({ vote_open: false }).eq('id', team.id);
+  await syncData();
   toast('Голосование отменено');
 }
 
-function applyVote(team) {
+async function applyVote(team) {
   if (!isAdmin()) return;
   if (!team.vote) return;
   const results = voteCounts(team);
   const max = Math.max(0, ...results.map(r => r.count));
   const winners = results.filter(r => r.count === max && max > 0);
   if (winners.length !== 1) { toast('Нет однозначного победителя', 'err'); return; }
-  team.leader = winners[0].nick;
-  if (sameNick(team.deputy, winners[0].nick)) team.deputy = null;
-  team.vote = null;
-  saveTeams();
-  renderAll();
+  const patch = { leader_nick: winners[0].nick, vote_open: false };
+  if (sameNick(team.deputy, winners[0].nick)) patch.deputy_nick = null;
+  await sb.from('votes').delete().eq('team_id', team.id);
+  const { error } = await sb.from('teams').update(patch).eq('id', team.id);
+  if (error) { toast('Ошибка: ' + error.message, 'err'); return; }
+  await syncData();
   toast('Глава по итогам голосования — ' + winners[0].nick);
 }
 
-/* ===================== Админы (только основатель) ===================== */
-function promoteToAdmin(nick) {
+/* ===================== Админы ===================== */
+async function promoteToAdmin(nick) {
   if (!isFounder()) { toast('Только основатель может выдавать админку', 'err'); return; }
-  const list = users();
-  const u = list.find(x => sameNick(x.nick, nick));
+  const u = findUser(nick);
   if (!u || roleOf(u) === 'founder') return;
-  u.role = 'admin';
-  store.set(K_USERS, list);
-  if (state.user && sameNick(state.user.nick, nick)) state.user.role = 'admin';
-  renderAll();
+  const { error } = await sb.from('profiles').update({ role: 'admin' }).eq('id', u.id);
+  if (error) { toast('Ошибка: ' + error.message, 'err'); return; }
+  await syncData();
   toast(nick + ' теперь админ');
 }
 
-function demoteFromAdmin(nick) {
+async function demoteFromAdmin(nick) {
   if (!isFounder()) { toast('Только основатель может снимать админку', 'err'); return; }
-  const list = users();
-  const u = list.find(x => sameNick(x.nick, nick));
+  const u = findUser(nick);
   if (!u || roleOf(u) === 'founder') return;
-  u.role = 'player';
-  store.set(K_USERS, list);
-  if (state.user && sameNick(state.user.nick, nick)) state.user.role = 'player';
-  renderAll();
+  const { error } = await sb.from('profiles').update({ role: 'player' }).eq('id', u.id);
+  if (error) { toast('Ошибка: ' + error.message, 'err'); return; }
+  await syncData();
   toast(nick + ' больше не админ');
 }
 
 function renderAdmin() {
   const box = $('#admin-detail');
   if (!box || !isFounder()) return;
-  const list = users();
   box.innerHTML =
     `<div class="page-head"><div>` +
     `<h1 class="page-title">Админы</h1>` +
     `<p class="section__lead">Основатель выдаёт и снимает права админа. Админы создают отряды и назначают главу.</p>` +
     `</div></div>` +
     `<div class="admin-list">` +
-    list.map(u => {
+    state.profiles.slice().sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).map(u => {
       const role = roleOf(u);
       const roleLabel = role === 'founder' ? 'Основатель' : (role === 'admin' ? 'Админ' : 'Игрок');
       let btn;
@@ -857,7 +840,8 @@ function renderAdmin() {
       return `<div class="admin-row">` +
         `<div class="avatar"${role === 'founder' ? ' style="background:var(--amber)"' : ''}>${esc(u.nick[0].toUpperCase())}</div>` +
         `<div class="member__info"><span class="member__nick">${esc(u.nick)}</span>` +
-        `<span class="admin-row__role ${role}">${roleLabel}</span></div>` +
+        `<span class="admin-row__role ${role}">${roleLabel}</span>` +
+        `<span class="admin-row__date">Регистрация: ${esc(formatDate(u.created_at))}</span></div>` +
         `<div class="member__actions">${btn}</div>` +
         `</div>`;
     }).join('') +
@@ -865,6 +849,8 @@ function renderAdmin() {
 }
 
 /* ===================== Auth ===================== */
+function emailFor(nick) { return nick.toLowerCase() + '@' + EMAIL_DOMAIN; }
+
 function switchAuthTab(tab) {
   $$('[data-authtab]').forEach(b => b.classList.toggle('active', b.dataset.authtab === tab));
   $('#form-login').classList.toggle('hidden', tab !== 'login');
@@ -872,10 +858,17 @@ function switchAuthTab(tab) {
   $('#err-login').textContent = '';
   $('#err-register').textContent = '';
 }
+function openAuth(tab) { switchAuthTab(tab || 'login'); openModal($('#modal-auth')); }
 
-function openAuth(tab) {
-  switchAuthTab(tab || 'login');
-  openModal($('#modal-auth'));
+async function afterAuth() {
+  closeModal($('#modal-auth'));
+  renderAll();
+  toast('С возвращением, ' + state.user.nick + '!');
+  if (state.pendingAccept) {
+    const token = state.pendingAccept;
+    state.pendingAccept = null;
+    await acceptInvite(token);
+  }
 }
 
 /* ===================== Рендер всего ===================== */
@@ -883,38 +876,22 @@ function renderAll() {
   renderHeader();
   renderNav();
   renderInviteBanner();
-  const teamsVisible = !$('#view-teams').classList.contains('hidden');
-  const teamVisible = !$('#view-team').classList.contains('hidden');
-  const adminVisible = !$('#view-admin').classList.contains('hidden');
-  if (teamsVisible) renderTeams();
-  if (adminVisible) renderAdmin();
-  if (teamVisible) {
+  if (!$('#view-teams').classList.contains('hidden')) renderTeams();
+  if (!$('#view-admin').classList.contains('hidden')) renderAdmin();
+  if (!$('#view-team').classList.contains('hidden')) {
     const hash = location.hash;
     if (hash.indexOf('#/team/') === 0) {
       const team = getTeam(hash.slice('#/team/'.length));
-      if (team) renderTeamDetail(team);
-      else renderTeams();
+      if (team) renderTeamDetail(team); else renderTeams();
     }
   }
 }
 
 /* ===================== Инициализация ===================== */
-function init() {
-  ensureAdmin();
-  state.teams = store.get(K_TEAMS, []);
-  if (!Array.isArray(state.teams)) state.teams = [];
-
-  const sessionNick = store.get(K_SESSION, null);
-  if (sessionNick) {
-    const u = findUser(sessionNick);
-    if (u) state.user = { nick: u.nick, role: roleOf(u) };
-    else if (sessionNick.toLowerCase() === ADMIN_NICK.toLowerCase()) state.user = { nick: ADMIN_NICK, role: 'founder' };
-    else store.remove(K_SESSION);
-  }
-
+function wireEvents() {
   window.addEventListener('hashchange', route);
 
-  document.addEventListener('click', e => {
+  document.addEventListener('click', async e => {
     const closer = e.target.closest('[data-close-modal]');
     if (closer) {
       const modal = closer.closest('.modal');
@@ -935,7 +912,7 @@ function init() {
       case 'open-register': openAuth('register'); break;
       case 'invite-login': openAuth('login'); break;
       case 'logout':
-        store.remove(K_SESSION);
+        await sb.auth.signOut();
         state.user = null;
         renderAll();
         toast('Ты вышел из аккаунта');
@@ -943,29 +920,31 @@ function init() {
       case 'create-team': openCreateModal(); break;
       case 'rename': if (currentTeam && canEditTeam(currentTeam)) renameTeam(currentTeam); break;
       case 'recolor': if (currentTeam && canEditTeam(currentTeam)) recolorTeam(currentTeam); break;
-      case 'make-leader': if (currentTeam) makeLeader(currentTeam, btn.dataset.nick); break;
-      case 'make-deputy': if (currentTeam) makeDeputy(currentTeam, btn.dataset.nick); break;
-      case 'remove-deputy': if (currentTeam) removeDeputy(currentTeam, btn.dataset.nick); break;
-      case 'kick': if (currentTeam) kickMember(currentTeam, btn.dataset.nick); break;
-      case 'leave': if (currentTeam) leaveTeam(currentTeam); break;
-      case 'start-vote': if (currentTeam) startVote(currentTeam); break;
-      case 'vote': if (currentTeam) castVote(currentTeam, btn.dataset.nick); break;
-      case 'apply-vote': if (currentTeam) applyVote(currentTeam); break;
-      case 'cancel-vote': if (currentTeam) cancelVote(currentTeam); break;
-      case 'promote-admin': promoteToAdmin(btn.dataset.nick); break;
-      case 'demote-admin': demoteFromAdmin(btn.dataset.nick); break;
+      case 'make-leader': if (currentTeam) await makeLeader(currentTeam, btn.dataset.nick); break;
+      case 'make-deputy': if (currentTeam) await makeDeputy(currentTeam, btn.dataset.nick); break;
+      case 'remove-deputy': if (currentTeam) await removeDeputy(currentTeam, btn.dataset.nick); break;
+      case 'kick': if (currentTeam) await kickMember(currentTeam, btn.dataset.nick); break;
+      case 'leave': if (currentTeam) await leaveTeam(currentTeam); break;
+      case 'start-vote': if (currentTeam) await startVote(currentTeam); break;
+      case 'vote': if (currentTeam) await castVote(currentTeam, btn.dataset.nick); break;
+      case 'apply-vote': if (currentTeam) await applyVote(currentTeam); break;
+      case 'cancel-vote': if (currentTeam) await cancelVote(currentTeam); break;
+      case 'promote-admin': await promoteToAdmin(btn.dataset.nick); break;
+      case 'demote-admin': await demoteFromAdmin(btn.dataset.nick); break;
       case 'copy-invite':
         if (currentTeam && currentTeam.invite) copyText(inviteUrl(currentTeam), 'Ссылка скопирована');
         break;
       case 'regen-invite':
         if (currentTeam && canManageTeam(currentTeam)) {
-          currentTeam.invite = makeToken();
-          saveTeams();
+          const token = makeToken();
+          const { error } = await sb.from('teams').update({ invite: token }).eq('id', currentTeam.id);
+          if (error) { toast('Ошибка: ' + error.message, 'err'); break; }
+          currentTeam.invite = token;
           renderTeamDetail(currentTeam);
           copyText(inviteUrl(currentTeam), 'Новая ссылка создана и скопирована');
         }
         break;
-      case 'accept-invite': acceptInvite(state.inviteToken); break;
+      case 'accept-invite': await acceptInvite(state.inviteToken); break;
       case 'decline-invite':
         clearInvite();
         if (location.hash.indexOf('#/invite/') === 0) location.hash = '#/home';
@@ -978,44 +957,42 @@ function init() {
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     const dyn = $$('.modal[data-dynamic]');
-    if (dyn.length) {
-      dyn[dyn.length - 1].remove();
-      syncBodyScroll();
-      return;
-    }
+    if (dyn.length) { dyn[dyn.length - 1].remove(); syncBodyScroll(); return; }
     const open = document.querySelector('.modal:not(.hidden)');
     if (open) closeModal(open);
   });
 
   $$('.modal:not([data-dynamic])').forEach(modal => {
-    modal.addEventListener('click', e => {
-      if (e.target === modal) closeModal(modal);
-    });
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(modal); });
   });
 
   $$('[data-authtab]').forEach(b => b.addEventListener('click', () => switchAuthTab(b.dataset.authtab)));
 
-  $('#form-login').addEventListener('submit', e => {
+  $('#form-login').addEventListener('submit', async e => {
     e.preventDefault();
     const nick = e.target.nick.value.trim();
     const pass = e.target.pass.value;
     const err = $('#err-login');
     err.textContent = '';
     if (!nick || !pass) { err.textContent = 'Заполни ник и пароль.'; return; }
-
-    const hardAdmin = nick.toLowerCase() === ADMIN_NICK.toLowerCase() && pass === ADMIN_PASS;
-    const u = findUser(nick);
-    if (!u || (u.pass !== pass && !hardAdmin)) {
-      err.textContent = 'Неверный ник или пароль.';
-      return;
+    err.textContent = 'Входим…';
+    const { data, error } = await sb.auth.signInWithPassword({ email: emailFor(nick), password: pass });
+    if (error) { err.textContent = 'Неверный ник или пароль.'; return; }
+    let prof = null;
+    const q = await sb.from('profiles').select('id,nick,role').eq('id', data.user.id).maybeSingle();
+    prof = q.data;
+    if (!prof) {
+      const role = nick.toLowerCase() === ADMIN_NICK.toLowerCase() ? 'founder' : 'player';
+      await sb.from('profiles').insert({ id: data.user.id, nick: nick, role: role });
+      prof = { id: data.user.id, nick: nick, role: role };
     }
-    state.user = { nick: u.nick, role: roleOf(u) };
-    store.set(K_SESSION, u.nick);
+    state.user = { id: prof.id, nick: prof.nick, role: prof.role };
     e.target.reset();
-    afterAuth();
+    await syncData();
+    await afterAuth();
   });
 
-  $('#form-register').addEventListener('submit', e => {
+  $('#form-register').addEventListener('submit', async e => {
     e.preventDefault();
     const nick = e.target.nick.value.trim();
     const pass = e.target.pass.value;
@@ -1023,67 +1000,52 @@ function init() {
     const err = $('#err-register');
     err.textContent = '';
 
-    if (!/^[A-Za-z0-9_]{3,16}$/.test(nick)) {
-      err.textContent = 'Ник: 3–16 символов, латиница, цифры и знак _.';
-      return;
-    }
-    if (nick.toLowerCase() === ADMIN_NICK.toLowerCase()) {
-      err.textContent = 'Этот ник зарезервирован.';
-      return;
-    }
+    if (!/^[A-Za-z0-9_]{3,16}$/.test(nick)) { err.textContent = 'Ник: 3–16 символов, латиница, цифры и знак _.'; return; }
     if (pass.length < 6) { err.textContent = 'Пароль должен быть от 6 символов.'; return; }
     if (pass !== pass2) { err.textContent = 'Пароли не совпадают.'; return; }
-    if (findUser(nick)) { err.textContent = 'Такой ник уже занят.'; return; }
 
-    const list = users();
-    list.push({ nick: nick, pass: pass, role: 'player' });
-    store.set(K_USERS, list);
-    state.user = { nick: nick, role: 'player' };
-    store.set(K_SESSION, nick);
+    err.textContent = 'Создаём аккаунт…';
+    const { data, error } = await sb.auth.signUp({ email: emailFor(nick), password: pass });
+    if (error) {
+      err.textContent = /already/i.test(error.message)
+        ? 'Такой ник уже занят.'
+        : 'Ошибка регистрации: ' + error.message;
+      return;
+    }
+    if (!data.session) {
+      err.textContent = 'Включено подтверждение почты в Supabase. Отключи его: Authentication → Providers → Email → Confirm email = off.';
+      return;
+    }
+    const role = nick.toLowerCase() === ADMIN_NICK.toLowerCase() ? 'founder' : 'player';
+    const { error: pe } = await sb.from('profiles').insert({ id: data.user.id, nick: nick, role: role });
+    if (pe) { err.textContent = 'Не удалось сохранить профиль: ' + pe.message; return; }
+    state.user = { id: data.user.id, nick: nick, role: role };
     e.target.reset();
     closeModal($('#modal-auth'));
-    renderAll();
+    await syncData();
     toast('Аккаунт создан, добро пожаловать!');
-    if (state.pendingAccept) {
-      const token = state.pendingAccept;
-      state.pendingAccept = null;
-      acceptInvite(token);
-    }
+    if (state.pendingAccept) { const token = state.pendingAccept; state.pendingAccept = null; await acceptInvite(token); }
   });
 
-  $('#form-create').addEventListener('submit', e => {
+  $('#form-create').addEventListener('submit', async e => {
     e.preventDefault();
     const err = $('#err-create');
     err.textContent = '';
-    if (!isAdmin()) { err.textContent = 'Создавать команды может только администратор.'; return; }
-
+    if (!isAdmin()) { err.textContent = 'Создавать команды может только основатель или админ.'; return; }
     const name = e.target.name.value.trim();
     const desc = e.target.desc.value.trim();
     if (name.length < 2) { err.textContent = 'Введи название (минимум 2 символа).'; return; }
-
-    const team = {
-      id: uid(),
-      name: name,
-      desc: desc,
-      color: state.createColor,
-      leader: null,
-      deputy: null,
-      members: [state.user.nick],
-      invite: null,
-      vote: null
-    };
-    state.teams.push(team);
-    saveTeams();
-    closeModal($('#modal-create'));
+    const box = $('#modal-create');
+    const submitBtn = $('.btn--primary', $('form', box));
+    if (submitBtn) submitBtn.disabled = true;
+    const msg = await createTeam(name, desc);
+    if (submitBtn) submitBtn.disabled = false;
+    if (msg) { err.textContent = msg; return; }
+    closeModal(box);
     e.target.reset();
-    toast('Команда «' + team.name + '» создана');
-    location.hash = '#/team/' + team.id;
-    renderAll();
   });
 
-  $('#copy-ip').addEventListener('click', () => {
-    copyText('DSV-Zom.minerent.io', 'IP сервера скопирован');
-  });
+  $('#copy-ip').addEventListener('click', () => copyText('DSV-Zom.minerent.io', 'IP сервера скопирован'));
 
   document.addEventListener('click', e => {
     const a = e.target.closest('a[href^="#"]:not([href^="#/"])');
@@ -1092,14 +1054,32 @@ function init() {
     const el = document.getElementById(id);
     if (!el) return;
     e.preventDefault();
-    if (location.hash === a.getAttribute('href')) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      location.hash = a.getAttribute('href');
-    }
+    if (location.hash === a.getAttribute('href')) el.scrollIntoView({ behavior: 'smooth' });
+    else location.hash = a.getAttribute('href');
   });
+}
 
-  renderAll();
+async function init() {
+  wireEvents();
+
+  if (!sb) {
+    renderHeader();
+    toast('Заполни js/config.js (URL и anon key Supabase)', 'err');
+    return;
+  }
+
+  const sess = await sb.auth.getSession();
+  if (sess.data && sess.data.session) {
+    const uid = sess.data.session.user.id;
+    const q = await sb.from('profiles').select('id,nick,role').eq('id', uid).maybeSingle();
+    if (q.data) state.user = { id: q.data.id, nick: q.data.nick, role: q.data.role };
+  }
+
+  sb.channel('dsv-changes')
+    .on('postgres_changes', { event: '*', schema: 'public' }, () => { syncData(); })
+    .subscribe();
+
+  await syncData();
   route();
 }
 
