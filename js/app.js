@@ -34,7 +34,11 @@ const state = {
   teams: [],             // собранные объекты для интерфейса
   inviteToken: localStorage.getItem(K_INVITE) || null,
   pendingAccept: null,
-  createColor: COLORS[0]
+  createColor: COLORS[0],
+  messages: [],
+  chatTeamId: null,
+  chatError: false,
+  chatDraft: ''
 };
 
 /* ===================== Утилиты ===================== */
@@ -63,6 +67,33 @@ function formatDate(iso) {
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit'
   });
+}
+
+function formatTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const now = new Date();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  if (d.toDateString() === now.toDateString()) return hh + ':' + mm;
+  return String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + ' ' + hh + ':' + mm;
+}
+
+function teamColorFor(nick) {
+  const t = state.teams.find(x => x.members.some(m => sameNick(m, nick)));
+  return t ? t.color : '#4cd137';
+}
+
+function avatarHtml(profile, color, cls) {
+  const nick = (profile && profile.nick) ? String(profile.nick) : '?';
+  const av = (profile && profile.avatar) ? String(profile.avatar).trim() : '';
+  const extra = cls ? ' ' + cls : '';
+  if (/^https?:\/\//i.test(av)) {
+    return `<div class="avatar avatar--img${extra}"><img src="${esc(av)}" alt="" loading="lazy"></div>`;
+  }
+  const style = color ? ` style="background:${esc(color)}"` : '';
+  return `<div class="avatar${extra}"${style}>${esc(nick[0] ? nick[0].toUpperCase() : '?')}</div>`;
 }
 
 function roleRank(role) {
@@ -131,10 +162,18 @@ function rebuildTeams() {
   });
 }
 
+async function fetchProfiles() {
+  let r = await sb.from('profiles').select('id,nick,role,created_at,avatar');
+  if (r.error && /avatar/i.test(r.error.message || '')) {
+    r = await sb.from('profiles').select('id,nick,role,created_at');
+  }
+  return r;
+}
+
 async function syncData() {
   if (!sb) return;
   const [p, t, m, v] = await Promise.all([
-    sb.from('profiles').select('id,nick,role,created_at'),
+    fetchProfiles(),
     sb.from('teams').select('*'),
     sb.from('team_members').select('team_id,nick'),
     sb.from('votes').select('team_id,voter,candidate')
@@ -284,6 +323,8 @@ function setActiveNav(href) {
 function route() {
   const hash = location.hash || '#/home';
 
+  if (hash.indexOf('#/team/') !== 0) leaveChat();
+
   if (hash.indexOf('#/invite/') === 0) {
     saveInviteToken(decodeURIComponent(hash.slice('#/invite/'.length)));
     showView('teams');
@@ -308,6 +349,14 @@ function route() {
     showView('team');
     setActiveNav('#/teams');
     renderTeamDetail(team);
+    window.scrollTo(0, 0);
+    return;
+  }
+
+  if (hash.indexOf('#/user/') === 0) {
+    showView('user');
+    setActiveNav('');
+    renderUserProfile(decodeURIComponent(hash.slice('#/user/'.length)));
     window.scrollTo(0, 0);
     return;
   }
@@ -368,9 +417,10 @@ function renderHeader() {
   const badge = isFounder()
     ? ' <span class="badge">основатель</span>'
     : (isAdmin() ? ' <span class="badge">админ</span>' : '');
+  const meProf = findUser(state.user.nick) || { nick: state.user.nick };
   box.innerHTML =
     `<div class="userchip">` +
-    `<div class="avatar"${color ? ` style="background:${color}"` : ''}>${esc(state.user.nick[0].toUpperCase())}</div>` +
+    avatarHtml(meProf, color) +
     `<div><span class="userchip__nick">${esc(state.user.nick)}${badge}</span>` +
     `<span class="userchip__team">${team ? 'Отряд: ' + esc(team.name) : 'Без отряда'}</span></div>` +
     `</div>` +
@@ -459,9 +509,9 @@ function renderTeamDetail(team) {
 
     return (
       `<div class="member${isLeader ? ' member--leader' : ''}">` +
-      `<div class="avatar" style="background:${team.color}">${esc(n[0].toUpperCase())}</div>` +
+      avatarHtml(findUser(n) || { nick: n }, team.color) +
       `<div class="member__info">` +
-      `<span class="member__nick">${esc(n)}${isMe ? ' <span class="muted">(вы)</span>' : ''}</span>` +
+      `<span class="member__nick"><a class="nick-link" href="#/user/${encodeURIComponent(n)}">${esc(n)}</a>${isMe ? ' <span class="muted">(вы)</span>' : ''}</span>` +
       `<span class="member__role${roleClass}">${roleLabel}</span>` +
       `</div>` +
       `<div class="member__actions">${btns}</div>` +
@@ -521,6 +571,19 @@ function renderTeamDetail(team) {
       `</div>`;
   }
 
+  if (member || isAdmin()) {
+    panels +=
+      `<div class="panel chat-panel">` +
+      `<h3>Чат отряда</h3>` +
+      `<p class="panel__sub">Сообщения видят только участники отряда.</p>` +
+      `<div class="chat-log" id="chat-log"></div>` +
+      `<form class="chat-form" id="chat-form">` +
+      `<input id="chat-input" name="msg" maxlength="300" placeholder="Написать отряду…" autocomplete="off" required>` +
+      `<button class="btn btn--small btn--primary" type="submit">Отправить</button>` +
+      `</form>` +
+      `</div>`;
+  }
+
   $('#team-detail').innerHTML =
     `<div class="team-hero" style="--tc:${team.color}">` +
     `<div>` +
@@ -535,6 +598,8 @@ function renderTeamDetail(team) {
     `<div><h2 class="block-title">Состав</h2><div class="members">${membersHtml}</div></div>` +
     `<div>${panels}</div>` +
     `</div>`;
+
+  if (member || isAdmin()) loadTeamChat(team);
 }
 
 function voteCounts(team) {
@@ -568,9 +633,9 @@ function votePanelHtml(team, me, member) {
       const extra = (myVote ? ' · ваш голос' : '') + (isLeader ? ' · текущий глава' : '');
       h +=
         `<div class="member">` +
-        `<div class="avatar" style="background:${team.color}">${esc(r.nick[0].toUpperCase())}</div>` +
+        avatarHtml(findUser(r.nick) || { nick: r.nick }, team.color) +
         `<div class="member__info">` +
-        `<span class="member__nick">${esc(r.nick)}</span>` +
+        `<span class="member__nick"><a class="nick-link" href="#/user/${encodeURIComponent(r.nick)}">${esc(r.nick)}</a></span>` +
         `<span class="member__role">Голосов: ${r.count}${extra}</span>` +
         `</div>` +
         ((member && !myVote)
@@ -592,6 +657,90 @@ function votePanelHtml(team, me, member) {
   }
   h += `</div>`;
   return h;
+}
+
+/* ===================== Чат отряда ===================== */
+let chatChannel = null;
+
+function leaveChat() {
+  if (chatChannel && sb) { try { sb.removeChannel(chatChannel); } catch (e) {} }
+  chatChannel = null;
+  state.chatTeamId = null;
+  state.messages = [];
+  state.chatDraft = '';
+}
+
+async function fetchMessages(teamId) {
+  const { data, error } = await sb.from('team_messages')
+    .select('id,team_id,nick,body,created_at')
+    .eq('team_id', teamId).order('created_at', { ascending: true }).limit(300);
+  if (error) { state.chatError = true; state.messages = []; return; }
+  state.chatError = false;
+  state.messages = data || [];
+}
+
+async function loadTeamChat(team) {
+  const log = $('#chat-log');
+  if (!log) return;
+  if (state.chatTeamId !== team.id) {
+    state.chatTeamId = team.id;
+    state.messages = [];
+    state.chatError = false;
+    subscribeChat(team.id);
+    await fetchMessages(team.id);
+  }
+  renderChatLog();
+  const input = $('#chat-input');
+  if (input && state.chatDraft) input.value = state.chatDraft;
+}
+
+function renderChatLog() {
+  const log = $('#chat-log');
+  if (!log) return;
+  if (state.chatError) {
+    log.innerHTML = `<div class="chat-empty">Чат ещё не настроен на сервере.<br>Нужно добавить таблицу <b>team_messages</b> в Supabase.</div>`;
+    return;
+  }
+  if (!state.messages.length) {
+    log.innerHTML = `<div class="chat-empty">Сообщений пока нет. Напиши первым!</div>`;
+    return;
+  }
+  const me = state.user ? state.user.nick : null;
+  log.innerHTML = state.messages.map(m => {
+    const mine = sameNick(me, m.nick);
+    const u = findUser(m.nick);
+    return `<div class="chat-msg${mine ? ' chat-msg--mine' : ''}">` +
+      avatarHtml(u || { nick: m.nick }, teamColorFor(m.nick)) +
+      `<div class="chat-msg__body">` +
+      `<div class="chat-msg__head"><a class="nick-link" href="#/user/${encodeURIComponent(m.nick)}">${esc(m.nick)}</a>` +
+      `<span class="chat-msg__time">${esc(formatTime(m.created_at))}</span></div>` +
+      `<div class="chat-msg__text">${esc(m.body)}</div>` +
+      `</div></div>`;
+  }).join('');
+  log.scrollTop = log.scrollHeight;
+}
+
+function subscribeChat(teamId) {
+  if (!sb) return;
+  if (chatChannel) { try { sb.removeChannel(chatChannel); } catch (e) {} }
+  chatChannel = sb.channel('dsv-chat-' + teamId)
+    .on('postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'team_messages', filter: 'team_id=eq.' + teamId },
+      () => { if (state.chatTeamId === teamId) fetchMessages(teamId).then(renderChatLog); })
+    .subscribe();
+}
+
+async function sendChatMessage(body) {
+  const text = (body || '').trim();
+  if (!text || !state.user || !state.chatTeamId) return null;
+  if (text.length > 300) return 'Сообщение слишком длинное (максимум 300 символов).';
+  const { error } = await sb.from('team_messages').insert({
+    team_id: state.chatTeamId, nick: state.user.nick, body: text
+  });
+  if (error) return 'Не удалось отправить. Возможно, чат ещё не настроен на сервере.';
+  await fetchMessages(state.chatTeamId);
+  renderChatLog();
+  return null;
 }
 
 /* ===================== Приглашение ===================== */
@@ -862,8 +1011,8 @@ function renderAdmin() {
       else if (role === 'player') btn = `<button class="btn btn--small btn--ghost" type="button" data-act="promote-admin" data-nick="${esc(u.nick)}">Сделать админом</button>`;
       else btn = `<span class="badge">основатель</span>`;
       return `<div class="admin-row">` +
-        `<div class="avatar"${role === 'founder' ? ' style="background:var(--amber)"' : ''}>${esc(u.nick[0].toUpperCase())}</div>` +
-        `<div class="member__info"><span class="member__nick">${esc(u.nick)}</span>` +
+        avatarHtml(u, role === 'founder' ? '#fbc531' : teamColorFor(u.nick)) +
+        `<div class="member__info"><span class="member__nick"><a class="nick-link" href="#/user/${encodeURIComponent(u.nick)}">${esc(u.nick)}</a></span>` +
         `<span class="admin-row__role ${role}">${roleLabel}</span>` +
         `<span class="admin-row__date">Регистрация: ${esc(formatDate(u.created_at))}</span></div>` +
         `<div class="member__actions">${btn}</div>` +
@@ -913,9 +1062,10 @@ function renderAccount() {
     `<div class="page-head">` +
     `<div><h1 class="page-title">Личный кабинет</h1>` +
     `<p class="section__lead">Профиль, отряды и безопасность аккаунта.</p></div>` +
+    `<div class="page-actions"><a class="btn btn--small btn--ghost" href="#/user/${encodeURIComponent(myNick)}">Мой публичный профиль</a></div>` +
     `</div>` +
     `<div class="account-hero" style="--ac:${color}">` +
-    `<div class="avatar avatar--lg">${esc(myNick[0].toUpperCase())}</div>` +
+    avatarHtml(profile, color, 'avatar--lg') +
     `<div class="account-hero__info">` +
     `<div class="account-hero__nick">${esc(myNick)}${badge}</div>` +
     `<div class="account-hero__meta">${roleLabel} · Зарегистрирован: ${esc(formatDate(profile.created_at))}</div>` +
@@ -928,6 +1078,11 @@ function renderAccount() {
     `</div>` +
     `<div class="account-col">` +
     `<h2 class="block-title">Аккаунт</h2>` +
+    `<div class="panel">` +
+    `<h3>Аватар</h3>` +
+    `<p class="panel__sub">Загрузи картинку с компьютера — её увидят все игроки в списках и в профиле.</p>` +
+    `<button class="btn btn--small btn--primary" type="button" data-act="change-avatar">Загрузить аватар</button>` +
+    `</div>` +
     `<div class="panel">` +
     `<h3>Безопасность</h3>` +
     `<p class="panel__sub">Смени пароль от аккаунта DSV. Вход остаётся под твоим ником.</p>` +
@@ -961,6 +1116,147 @@ function openChangePassword() {
   });
 }
 
+/* ===================== Аватар ===================== */
+async function uploadAvatar(file) {
+  if (!sb || !state.user) return null;
+  const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
+  const path = state.user.id + '/' + Date.now() + '.' + ext;
+  const { error } = await sb.storage.from('avatars').upload(path, file, {
+    upsert: true, cacheControl: '3600', contentType: file.type || 'image/png'
+  });
+  if (error) { console.error(error); return null; }
+  const { data } = sb.storage.from('avatars').getPublicUrl(path);
+  return data ? data.publicUrl : null;
+}
+
+async function saveAvatarUrl(url) {
+  if (!sb || !state.user) return 'Сначала войди в аккаунт.';
+  const { error } = await sb.from('profiles').update({ avatar: url || null }).eq('id', state.user.id);
+  if (error) return 'Ошибка: ' + error.message + ' (нужна колонка avatar на сервере)';
+  const p = state.profiles.find(x => x.id === state.user.id);
+  if (p) p.avatar = url || null;
+  await syncData();
+  toast(url ? 'Аватар обновлён' : 'Аватар удалён');
+  return null;
+}
+
+function openAvatarModal() {
+  if (!state.user) { toast('Сначала войди в аккаунт', 'err'); return; }
+  const prof = findUser(state.user.nick) || { nick: state.user.nick };
+  const color = teamColorFor(state.user.nick);
+  const current = prof.avatar || '';
+  const overlay = document.createElement('div');
+  overlay.className = 'modal';
+  overlay.dataset.dynamic = '1';
+  overlay.innerHTML =
+    `<div class="modal__box">` +
+    `<button class="modal__close" type="button" data-close-modal aria-label="Закрыть">&times;</button>` +
+    `<h2 class="modal__title">Аватар</h2>` +
+    `<form>` +
+    `<div class="avatar-preview" id="avatar-preview">${avatarHtml({ nick: state.user.nick, avatar: current }, color, 'avatar--xl')}</div>` +
+    `<label class="field"><span>Картинка (PNG, JPG, WEBP, GIF — до 2 МБ)</span>` +
+    `<input type="file" name="file" accept="image/png,image/jpeg,image/webp,image/gif"></label>` +
+    `<div class="form-error"></div>` +
+    `<div class="panel__row">` +
+    `<button class="btn btn--primary" type="submit">Загрузить</button>` +
+    (current ? `<button class="btn btn--small btn--danger" type="button" data-avatar-remove>Удалить аватар</button>` : '') +
+    `</div></form></div>`;
+  document.body.appendChild(overlay);
+
+  const preview = $('#avatar-preview', overlay);
+  const fileInput = $('input[name="file"]', overlay);
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files && fileInput.files[0];
+    if (!f) return;
+    const url = URL.createObjectURL(f);
+    preview.innerHTML = `<div class="avatar avatar--xl avatar--img"><img src="${url}" alt=""></div>`;
+  });
+
+  const rm = $('[data-avatar-remove]', overlay);
+  if (rm) rm.addEventListener('click', async () => {
+    const msg = await saveAvatarUrl('');
+    if (msg) { $('.form-error', overlay).textContent = msg; return; }
+    overlay.remove(); syncBodyScroll();
+  });
+
+  $('form', overlay).addEventListener('submit', async e => {
+    e.preventDefault();
+    const errEl = $('.form-error', overlay);
+    errEl.textContent = '';
+    const f = fileInput.files && fileInput.files[0];
+    if (!f) { errEl.textContent = 'Выбери файл.'; return; }
+    if (!/^image\//.test(f.type || '')) { errEl.textContent = 'Это не картинка.'; return; }
+    if (f.size > 2 * 1024 * 1024) { errEl.textContent = 'Файл больше 2 МБ.'; return; }
+    const btn = $('button[type="submit"]', overlay);
+    if (btn) btn.disabled = true;
+    errEl.textContent = 'Загружаем…';
+    const url = await uploadAvatar(f);
+    if (btn) btn.disabled = false;
+    if (!url) { errEl.textContent = 'Не удалось загрузить. Нужен бакет «avatars» в Supabase.'; return; }
+    const msg = await saveAvatarUrl(url);
+    if (msg) { errEl.textContent = msg; return; }
+    overlay.remove(); syncBodyScroll();
+  });
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) { overlay.remove(); syncBodyScroll(); } });
+  syncBodyScroll();
+}
+
+/* ===================== Профиль игрока ===================== */
+function renderUserProfile(nick) {
+  const box = $('#user-detail');
+  if (!box) return;
+  const u = findUser(nick);
+  if (!u) {
+    box.innerHTML =
+      `<div class="page-head"><div><h1 class="page-title">Профиль игрока</h1></div></div>` +
+      `<div class="empty"><h2>Игрок не найден</h2>` +
+      `<p>Аккаунта с ником «${esc(nick)}» нет.</p>` +
+      `<a class="btn btn--ghost" href="#/teams">К командам</a></div>`;
+    return;
+  }
+  const role = roleOf(u);
+  const roleLabel = role === 'founder' ? 'Основатель' : (role === 'admin' ? 'Админ' : 'Игрок');
+  const badge = role === 'founder'
+    ? ' <span class="badge">основатель</span>'
+    : (role === 'admin' ? ' <span class="badge">админ</span>' : '');
+  const isMe = state.user && sameNick(state.user.nick, u.nick);
+  const userTeams = state.teams.filter(t => t.members.some(m => sameNick(m, u.nick)));
+  const color = userTeams[0] ? userTeams[0].color : '#4cd137';
+
+  const teamsHtml = userTeams.length
+    ? userTeams.map(t => {
+        let roleTxt = 'Боец';
+        if (isLeaderOf(t, u.nick)) roleTxt = 'Глава';
+        else if (isDeputyOf(t, u.nick)) roleTxt = 'Заместитель';
+        return `<div class="account-team" style="--tc:${t.color}">` +
+          `<div class="account-team__stripe"></div>` +
+          `<div class="account-team__info">` +
+          `<div class="account-team__name">${esc(t.name)}</div>` +
+          `<div class="account-team__meta">Участников: ${t.members.length} · Роль: ${roleTxt}</div>` +
+          `</div>` +
+          `<a class="btn btn--small btn--ghost" href="#/team/${t.id}">Открыть</a>` +
+          `</div>`;
+      }).join('')
+    : `<div class="empty"><h2>Без отряда</h2>` +
+      `<p>${esc(u.nick)} пока не состоит в отряде.</p></div>`;
+
+  box.innerHTML =
+    `<div class="page-head"><div>` +
+    `<h1 class="page-title">Профиль игрока</h1>` +
+    `<p class="section__lead"><a class="nick-link" href="#/teams">Команды</a> · профиль ${esc(u.nick)}</p></div>` +
+    (isMe ? `<div class="page-actions"><a class="btn btn--small btn--ghost" href="#/account">Личный кабинет</a></div>` : '') +
+    `</div>` +
+    `<div class="account-hero" style="--ac:${color}">` +
+    avatarHtml(u, color, 'avatar--lg') +
+    `<div class="account-hero__info">` +
+    `<div class="account-hero__nick">${esc(u.nick)}${badge}</div>` +
+    `<div class="account-hero__meta">${roleLabel} · Зарегистрирован: ${esc(formatDate(u.created_at))}</div>` +
+    `</div></div>` +
+    `<h2 class="block-title">Отряды</h2>` +
+    `<div class="account-teams">${teamsHtml}</div>`;
+}
+
 /* ===================== Auth ===================== */
 function emailFor(nick) { return nick.toLowerCase() + '@' + EMAIL_DOMAIN; }
 
@@ -992,6 +1288,10 @@ function renderAll() {
   if (!$('#view-teams').classList.contains('hidden')) renderTeams();
   if (!$('#view-admin').classList.contains('hidden')) renderAdmin();
   if (!$('#view-account').classList.contains('hidden')) renderAccount();
+  if (!$('#view-user').classList.contains('hidden')) {
+    const h = location.hash;
+    if (h.indexOf('#/user/') === 0) renderUserProfile(decodeURIComponent(h.slice('#/user/'.length)));
+  }
   if (!$('#view-team').classList.contains('hidden')) {
     const hash = location.hash;
     if (hash.indexOf('#/team/') === 0) {
@@ -1047,6 +1347,7 @@ function wireEvents() {
       case 'promote-admin': await promoteToAdmin(btn.dataset.nick); break;
       case 'demote-admin': await demoteFromAdmin(btn.dataset.nick); break;
       case 'change-password': openChangePassword(); break;
+      case 'change-avatar': openAvatarModal(); break;
       case 'copy-invite':
         if (currentTeam && currentTeam.invite) copyText(inviteUrl(currentTeam), 'Ссылка скопирована');
         break;
@@ -1161,6 +1462,21 @@ function wireEvents() {
     e.target.reset();
   });
 
+  document.addEventListener('submit', async e => {
+    if (!e.target || e.target.id !== 'chat-form') return;
+    e.preventDefault();
+    const input = $('input', e.target);
+    const body = input ? input.value : '';
+    if (input) input.value = '';
+    state.chatDraft = '';
+    const err = await sendChatMessage(body);
+    if (err) { toast(err, 'err'); if (input) input.value = body; }
+  });
+
+  document.addEventListener('input', e => {
+    if (e.target && e.target.id === 'chat-input') state.chatDraft = e.target.value;
+  });
+
   $('#copy-ip').addEventListener('click', () => copyText('DSV-Zom.minerent.io', 'IP сервера скопирован'));
 
   document.addEventListener('click', e => {
@@ -1192,7 +1508,10 @@ async function init() {
   }
 
   sb.channel('dsv-changes')
-    .on('postgres_changes', { event: '*', schema: 'public' }, () => { syncData(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'teams' }, () => { syncData(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { syncData(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'team_members' }, () => { syncData(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'votes' }, () => { syncData(); })
     .subscribe();
 
   await syncData();
