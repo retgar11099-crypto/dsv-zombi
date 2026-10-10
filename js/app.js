@@ -90,7 +90,7 @@ function avatarHtml(profile, color, cls) {
   const nick = (profile && profile.nick) ? String(profile.nick) : '?';
   const av = (profile && profile.avatar) ? String(profile.avatar).trim() : '';
   const extra = cls ? ' ' + cls : '';
-  if (/^https?:\/\//i.test(av)) {
+  if (/^(https?:\/\/|data:image\/)/i.test(av)) {
     return `<div class="avatar avatar--img${extra}"><img src="${esc(av)}" alt="" loading="lazy"></div>`;
   }
   const style = color ? ` style="background:${esc(color)}"` : '';
@@ -1120,17 +1120,30 @@ function openChangePassword() {
 }
 
 /* ===================== Аватар ===================== */
-async function uploadAvatar(file) {
-  if (!sb || !state.user) return { error: 'Сначала войди в аккаунт.' };
-  const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
-  const path = state.user.id + '/' + Date.now() + '.' + ext;
-  const { error } = await sb.storage.from('avatars').upload(path, file, {
-    upsert: true, cacheControl: '3600', contentType: file.type || 'image/png'
+function prepareAvatarDataUrl(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 256;
+        let w = img.width || max, h = img.height || max;
+        const scale = Math.min(1, max / Math.max(w, h));
+        w = Math.max(1, Math.round(w * scale));
+        h = Math.max(1, Math.round(h * scale));
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        let out = c.toDataURL('image/jpeg', 0.85);
+        if (out.length > 300000) out = c.toDataURL('image/jpeg', 0.7);
+        resolve(out);
+      };
+      img.onerror = () => resolve(null);
+      img.src = reader.result;
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
   });
-  if (error) { console.error(error); return { error: error.message || String(error) }; }
-  const { data } = sb.storage.from('avatars').getPublicUrl(path);
-  if (!data || !data.publicUrl) return { error: 'Не удалось получить ссылку на файл.' };
-  return { url: data.publicUrl };
 }
 
 async function saveAvatarUrl(url) {
@@ -1190,14 +1203,14 @@ function openAvatarModal() {
     const f = fileInput.files && fileInput.files[0];
     if (!f) { errEl.textContent = 'Выбери файл.'; return; }
     if (!/^image\//.test(f.type || '')) { errEl.textContent = 'Это не картинка.'; return; }
-    if (f.size > 2 * 1024 * 1024) { errEl.textContent = 'Файл больше 2 МБ.'; return; }
+    if (f.size > 5 * 1024 * 1024) { errEl.textContent = 'Файл больше 5 МБ.'; return; }
     const btn = $('button[type="submit"]', overlay);
     if (btn) btn.disabled = true;
-    errEl.textContent = 'Загружаем…';
-    const up = await uploadAvatar(f);
+    errEl.textContent = 'Обрабатываем…';
+    const dataUrl = await prepareAvatarDataUrl(f);
     if (btn) btn.disabled = false;
-    if (up.error) { errEl.textContent = 'Ошибка загрузки: ' + up.error; return; }
-    const msg = await saveAvatarUrl(up.url);
+    if (!dataUrl) { errEl.textContent = 'Не удалось прочитать картинку.'; return; }
+    const msg = await saveAvatarUrl(dataUrl);
     if (msg) { errEl.textContent = msg; return; }
     overlay.remove(); syncBodyScroll();
   });
