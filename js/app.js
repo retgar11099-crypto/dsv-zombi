@@ -439,6 +439,9 @@ function renderTeamDetail(team) {
     const isMe = sameNick(me, n);
     let btns = '';
 
+    if (isAdmin() && isLeader) {
+      btns += `<button class="btn btn--small btn--danger" type="button" data-act="demote-leader" data-nick="${esc(n)}">Снять с поста</button>`;
+    }
     if (canAppointLeader() && !isLeader) {
       btns += `<button class="btn btn--small btn--ghost" type="button" data-act="make-leader" data-nick="${esc(n)}">Сделать главой</button>`;
     }
@@ -717,6 +720,15 @@ async function makeLeader(team, nick) {
   if (error) { toast('Ошибка: ' + error.message, 'err'); return; }
   await syncData();
   toast('Теперь глава отряда — ' + nick);
+}
+
+async function demoteLeader(team, nick) {
+  if (!isAdmin()) { toast('Снять с поста может только админ или основатель', 'err'); return; }
+  if (!isLeaderOf(team, nick)) return;
+  const { error } = await sb.from('teams').update({ leader_nick: null }).eq('id', team.id);
+  if (error) { toast('Ошибка: ' + error.message, 'err'); return; }
+  await syncData();
+  toast(nick + ' снят с поста главы');
 }
 
 async function makeDeputy(team, nick) {
@@ -1023,6 +1035,7 @@ function wireEvents() {
       case 'rename': if (currentTeam && canEditTeam(currentTeam)) renameTeam(currentTeam); break;
       case 'recolor': if (currentTeam && canEditTeam(currentTeam)) recolorTeam(currentTeam); break;
       case 'make-leader': if (currentTeam) await makeLeader(currentTeam, btn.dataset.nick); break;
+      case 'demote-leader': if (currentTeam) await demoteLeader(currentTeam, btn.dataset.nick); break;
       case 'make-deputy': if (currentTeam) await makeDeputy(currentTeam, btn.dataset.nick); break;
       case 'remove-deputy': if (currentTeam) await removeDeputy(currentTeam, btn.dataset.nick); break;
       case 'kick': if (currentTeam) await kickMember(currentTeam, btn.dataset.nick); break;
