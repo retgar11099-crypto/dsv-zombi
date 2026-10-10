@@ -20,6 +20,15 @@ if (CONFIGURED && window.supabase) {
 const ADMIN_NICK = 'Faranatic';
 const K_INVITE = 'dsv_pending_invite';
 
+// Живая карта мира (BlueMap). Публичный веб-порт сервера.
+const MAP_URL = 'https://DSV-Zom.minerent.io:22187';
+
+// Территории команд (зоны WarBorn Capture Points). Координаты из мира.
+const MAP_TERRITORIES = [
+  { id: '12',  team: 'team1', color: '#fbc531', minX: 106, maxX: 262, minZ: -436, maxZ: -355 },
+  { id: '123', team: 'team2', color: '#e84118', minX: 148, maxX: 383, minZ: 92,   maxZ: 264  }
+];
+
 const COLORS = [
   '#4cd137', '#2ecc71', '#00d2d3', '#3498db', '#54a0ff', '#a55eea',
   '#e84118', '#ff6b6b', '#fbc531', '#f39c12', '#ecf0f1', '#95a5a6'
@@ -326,6 +335,14 @@ function route() {
     showView('account');
     setActiveNav('#/account');
     renderAccount();
+    window.scrollTo(0, 0);
+    return;
+  }
+
+  if (hash === '#/map') {
+    showView('map');
+    setActiveNav('#/map');
+    renderMap();
     window.scrollTo(0, 0);
     return;
   }
@@ -961,6 +978,43 @@ function openChangePassword() {
   });
 }
 
+/* ===================== Карта территорий ===================== */
+function renderMap() {
+  const frame = $('#map-frame');
+  const legend = $('#map-legend');
+  const openTab = $('#map-open-tab');
+  if (!frame) return;
+  if (openTab) openTab.href = MAP_URL;
+
+  if (legend) {
+    legend.innerHTML = MAP_TERRITORIES.map(t =>
+      `<span class="map-legend__item"><i style="background:${t.color}"></i>${esc(t.team)}` +
+      ` <span class="map-legend__zone">зона ${esc(t.id)}</span></span>`
+    ).join('') +
+      `<span class="map-legend__hint">Зоны видны на карте как цветные области. Клик по зоне — инфо.</span>`;
+  }
+
+  if (frame.dataset.ready === '1') return;
+  frame.dataset.ready = '1';
+
+  const pageHttps = location.protocol === 'https:';
+  const mapHttps = /^https:/i.test(MAP_URL);
+  if (pageHttps && !mapHttps) {
+    frame.innerHTML =
+      `<div class="map-fallback">` +
+      `<h3>Карта не встроена</h3>` +
+      `<p>Сайт открыт по https, а карта доступна по <code>${esc(MAP_URL)}</code> (http). ` +
+      `Браузер блокирует такое встраивание.</p>` +
+      `<p>Открой карту отдельно — кнопка «Открыть на весь экран» вверху.</p>` +
+      `</div>`;
+    return;
+  }
+
+  frame.innerHTML =
+    `<iframe src="${esc(MAP_URL)}" title="Карта сервера DSV-Zombi" ` +
+    `loading="lazy" referrerpolicy="no-referrer" allowfullscreen></iframe>`;
+}
+
 /* ===================== Auth ===================== */
 function emailFor(nick) { return nick.toLowerCase() + '@' + EMAIL_DOMAIN; }
 
@@ -992,6 +1046,7 @@ function renderAll() {
   if (!$('#view-teams').classList.contains('hidden')) renderTeams();
   if (!$('#view-admin').classList.contains('hidden')) renderAdmin();
   if (!$('#view-account').classList.contains('hidden')) renderAccount();
+  if (!$('#view-map').classList.contains('hidden')) renderMap();
   if (!$('#view-team').classList.contains('hidden')) {
     const hash = location.hash;
     if (hash.indexOf('#/team/') === 0) {
