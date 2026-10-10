@@ -150,6 +150,21 @@ code{font-family:'Consolas',monospace;background:rgba(76,209,55,.1);border:1px s
 .admin-row__role.founder{color:var(--amber)}
 .admin-row__role.admin{color:var(--green2)}
 .admin-row__date{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+
+/* ===== Личный кабинет ===== */
+.account-hero{display:flex;align-items:center;gap:16px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--ac);border-radius:16px;padding:20px 22px;margin-bottom:28px}
+.account-hero .avatar{background:var(--ac)}
+.avatar--lg{width:60px;height:60px;border-radius:16px;font-size:26px}
+.account-hero__nick{font-family:var(--font-head);font-size:24px;line-height:1.2}
+.account-hero__meta{color:var(--muted);font-size:13px;margin-top:4px}
+.account-grid{display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start}
+.account-teams{display:grid;gap:12px}
+.account-team{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;flex-wrap:wrap}
+.account-team__stripe{width:4px;align-self:stretch;min-height:44px;background:var(--tc);border-radius:99px}
+.account-team__name{font-family:var(--font-head);color:var(--text);font-size:16px}
+.account-team__meta{font-size:12px;color:var(--muted);margin-top:3px}
+.account-team .btn{margin-left:auto}
+@media(max-width:760px){.account-grid{grid-template-columns:1fr}}
 .member__actions{display:flex;gap:8px;flex-wrap:wrap}
 .member--leader{border-color:rgba(251,197,49,.35)}
 

@@ -203,6 +203,9 @@ function formModal(opts) {
     if (f.type === 'textarea') {
       return `<label class="field"><span>${esc(f.label)}</span><textarea name="${esc(f.name)}" maxlength="${f.maxlength || 120}" placeholder="${esc(f.placeholder || '')}">${esc(f.value || '')}</textarea></label>`;
     }
+    if (f.type === 'password') {
+      return `<label class="field"><span>${esc(f.label)}</span><input type="password" name="${esc(f.name)}" maxlength="${f.maxlength || 64}" placeholder="${esc(f.placeholder || '')}" autocomplete="new-password" ${f.required === false ? '' : 'required'}></label>`;
+    }
     return `<label class="field"><span>${esc(f.label)}</span><input name="${esc(f.name)}" maxlength="${f.maxlength || 24}" placeholder="${esc(f.placeholder || '')}" value="${esc(f.value || '')}" ${f.required === false ? '' : 'required'}></label>`;
   }).join('');
 
@@ -314,6 +317,15 @@ function route() {
     showView('admin');
     setActiveNav('#/admin');
     renderAdmin();
+    window.scrollTo(0, 0);
+    return;
+  }
+
+  if (hash === '#/account') {
+    if (!state.user) { toast('Сначала войди в аккаунт', 'err'); location.hash = '#/home'; return; }
+    showView('account');
+    setActiveNav('#/account');
+    renderAccount();
     window.scrollTo(0, 0);
     return;
   }
@@ -848,6 +860,95 @@ function renderAdmin() {
     `</div>`;
 }
 
+/* ===================== Личный кабинет ===================== */
+function renderAccount() {
+  const box = $('#account-detail');
+  const me = state.user;
+  if (!box || !me) return;
+
+  const profile = state.profiles.find(p => p.id === me.id) ||
+    { id: me.id, nick: me.nick, role: me.role, created_at: null };
+  const myNick = profile.nick;
+  const role = roleOf(profile);
+  const roleLabel = role === 'founder' ? 'Основатель' : (role === 'admin' ? 'Админ' : 'Игрок');
+  const badge = role === 'founder'
+    ? ' <span class="badge">основатель</span>'
+    : (role === 'admin' ? ' <span class="badge">админ</span>' : '');
+
+  const myTeams = state.teams.filter(t => t.members.some(m => sameNick(m, myNick)));
+  const color = myTeams[0] ? myTeams[0].color : '#4cd137';
+
+  const teamsHtml = myTeams.length
+    ? myTeams.map(t => {
+        let roleTxt = 'Боец';
+        if (isLeaderOf(t, myNick)) roleTxt = 'Глава';
+        else if (isDeputyOf(t, myNick)) roleTxt = 'Заместитель';
+        return `<div class="account-team" style="--tc:${t.color}">` +
+          `<div class="account-team__stripe"></div>` +
+          `<div class="account-team__info">` +
+          `<div class="account-team__name">${esc(t.name)}</div>` +
+          `<div class="account-team__meta">Участников: ${t.members.length} · Ты — ${roleTxt}</div>` +
+          `</div>` +
+          `<a class="btn btn--small btn--ghost" href="#/team/${t.id}">Открыть</a>` +
+          `</div>`;
+      }).join('')
+    : `<div class="empty">` +
+      `<h2>Ты пока без отряда</h2>` +
+      `<p>Найди команду в общем списке или прими ссылку-приглашение от главы.</p>` +
+      `<a class="btn btn--primary" href="#/teams">К командам</a></div>`;
+
+  box.innerHTML =
+    `<div class="page-head">` +
+    `<div><h1 class="page-title">Личный кабинет</h1>` +
+    `<p class="section__lead">Профиль, отряды и безопасность аккаунта.</p></div>` +
+    `</div>` +
+    `<div class="account-hero" style="--ac:${color}">` +
+    `<div class="avatar avatar--lg">${esc(myNick[0].toUpperCase())}</div>` +
+    `<div class="account-hero__info">` +
+    `<div class="account-hero__nick">${esc(myNick)}${badge}</div>` +
+    `<div class="account-hero__meta">${roleLabel} · Зарегистрирован: ${esc(formatDate(profile.created_at))}</div>` +
+    `</div>` +
+    `</div>` +
+    `<div class="account-grid">` +
+    `<div class="account-col">` +
+    `<h2 class="block-title">Мои отряды</h2>` +
+    `<div class="account-teams">${teamsHtml}</div>` +
+    `</div>` +
+    `<div class="account-col">` +
+    `<h2 class="block-title">Аккаунт</h2>` +
+    `<div class="panel">` +
+    `<h3>Безопасность</h3>` +
+    `<p class="panel__sub">Смени пароль от аккаунта DSV. Вход остаётся под твоим ником.</p>` +
+    `<button class="btn btn--small btn--ghost" type="button" data-act="change-password">Сменить пароль</button>` +
+    `</div>` +
+    (isFounder()
+      ? `<div class="panel"><h3>Права основателя</h3>` +
+        `<p class="panel__sub">Тебе доступен раздел управления админами сети.</p>` +
+        `<a class="btn btn--small btn--primary" href="#/admin">Открыть админов</a></div>`
+      : '') +
+    `</div>` +
+    `</div>`;
+}
+
+function openChangePassword() {
+  formModal({
+    title: 'Сменить пароль',
+    fields: [
+      { name: 'pass', label: 'Новый пароль (минимум 6 символов)', type: 'password' },
+      { name: 'pass2', label: 'Повтори новый пароль', type: 'password' }
+    ],
+    submitText: 'Обновить',
+    async onSubmit(v) {
+      if (String(v.pass || '').length < 6) return 'Пароль должен быть от 6 символов.';
+      if (v.pass !== v.pass2) return 'Пароли не совпадают.';
+      const { error } = await sb.auth.updateUser({ password: v.pass });
+      if (error) return 'Ошибка: ' + error.message;
+      toast('Пароль обновлён');
+      return null;
+    }
+  });
+}
+
 /* ===================== Auth ===================== */
 function emailFor(nick) { return nick.toLowerCase() + '@' + EMAIL_DOMAIN; }
 
@@ -878,6 +979,7 @@ function renderAll() {
   renderInviteBanner();
   if (!$('#view-teams').classList.contains('hidden')) renderTeams();
   if (!$('#view-admin').classList.contains('hidden')) renderAdmin();
+  if (!$('#view-account').classList.contains('hidden')) renderAccount();
   if (!$('#view-team').classList.contains('hidden')) {
     const hash = location.hash;
     if (hash.indexOf('#/team/') === 0) {
@@ -931,6 +1033,7 @@ function wireEvents() {
       case 'cancel-vote': if (currentTeam) await cancelVote(currentTeam); break;
       case 'promote-admin': await promoteToAdmin(btn.dataset.nick); break;
       case 'demote-admin': await demoteFromAdmin(btn.dataset.nick); break;
+      case 'change-password': openChangePassword(); break;
       case 'copy-invite':
         if (currentTeam && currentTeam.invite) copyText(inviteUrl(currentTeam), 'Ссылка скопирована');
         break;
