@@ -1,0 +1,16 @@
+{
+  "name": "DSV-Zombi — сервер войны и зомби",
+  "short_name": "DSV-Zombi",
+  "description": "DSV-Zombi — Minecraft сервер про войну и зомби.",
+  "lang": "ru",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#101410",
+  "theme_color": "#101410",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
