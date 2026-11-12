@@ -194,6 +194,7 @@ async function syncData() {
   }
   rebuildTeams();
   renderAll();
+  if (window.DSV_DONATE) window.DSV_DONATE.loadData();
 }
 
 function getTeam(id) { return state.teams.find(t => t.id === id) || null; }
@@ -357,6 +358,14 @@ function route() {
     showView('user');
     setActiveNav('');
     renderUserProfile(decodeURIComponent(hash.slice('#/user/'.length)));
+    window.scrollTo(0, 0);
+    return;
+  }
+
+  if (hash === '#/donate') {
+    showView('donate');
+    setActiveNav('#/donate');
+    if (window.DSV_DONATE) window.DSV_DONATE.render();
     window.scrollTo(0, 0);
     return;
   }
@@ -1027,6 +1036,10 @@ function renderAdmin() {
         `</div>`;
     }).join('') +
     `</div>`;
+  if (window.DSV_DONATE) {
+    box.insertAdjacentHTML('beforeend', '<div id="donate-admin"></div>');
+    window.DSV_DONATE.renderAdmin();
+  }
 }
 
 /* ===================== Личный кабинет ===================== */
@@ -1309,6 +1322,7 @@ function renderAll() {
   renderInviteBanner();
   if (!$('#view-teams').classList.contains('hidden')) renderTeams();
   if (!$('#view-admin').classList.contains('hidden')) renderAdmin();
+  if (window.DSV_DONATE && !$('#view-donate').classList.contains('hidden')) window.DSV_DONATE.render();
   if (!$('#view-account').classList.contains('hidden')) renderAccount();
   if (!$('#view-user').classList.contains('hidden')) {
     const h = location.hash;
@@ -1344,6 +1358,14 @@ function wireEvents() {
     const currentTeam = hash.indexOf('#/team/') === 0 ? getTeam(hash.slice('#/team/'.length)) : null;
 
     switch (act) {
+      case 'donate-order': window.DSV_DONATE && window.DSV_DONATE.openOrder(btn.dataset.id); break;
+      case 'donate-reward-new': window.DSV_DONATE && window.DSV_DONATE.editReward(null); break;
+      case 'donate-reward-edit': window.DSV_DONATE && window.DSV_DONATE.editReward(btn.dataset.id); break;
+      case 'donate-reward-toggle': window.DSV_DONATE && window.DSV_DONATE.toggleReward(btn.dataset.id); break;
+      case 'donate-reward-del': window.DSV_DONATE && window.DSV_DONATE.deleteReward(btn.dataset.id); break;
+      case 'donate-order-status': window.DSV_DONATE && window.DSV_DONATE.setOrderStatus(btn.dataset.id, btn.dataset.status); break;
+      case 'donate-settings': window.DSV_DONATE && window.DSV_DONATE.editSettings(); break;
+      case 'donate-copy-code': window.DSV_DONATE && window.DSV_DONATE.copyCode(btn.dataset.code); break;
       case 'open-login': openAuth('login'); break;
       case 'open-register': openAuth('register'); break;
       case 'invite-login': openAuth('login'); break;
