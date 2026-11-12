@@ -14,22 +14,6 @@
     <meta name="theme-color" content="#101410" />
 </head>
 <body>
-<div class="intro" id="intro-overlay" aria-hidden="true">
-  <div class="intro__stage">
-    <div class="intro__brand">DSV-<span>ZOMBI</span></div>
-    <video class="intro__bg" aria-hidden="true" src="dsv-intro.mp4" playsinline preload="auto" muted loop autoplay></video>
-    <video class="intro__video" id="intro-video" src="dsv-intro.mp4" playsinline preload="auto" muted></video>
-    <div class="intro__soundhint" id="intro-soundhint">Нажми <b>Включить звук</b>, чтобы слышать</div>
-    <div class="intro__actions">
-      <button class="btn btn--small btn--ghost" type="button" id="intro-sound" aria-label="Включить звук">Включить звук</button>
-      <button class="btn btn--small btn--primary" type="button" id="intro-skip">Пропустить</button>
-    </div>
-    <div class="intro__fallback hidden" id="intro-fallback">
-      <p>Заставка не запустилась сама.</p>
-      <button class="btn btn--small btn--primary" type="button" id="intro-play">Смотреть интро</button>
-    </div>
-  </div>
-</div>
 
 <header class="header">
   <div class="container header__inner">
@@ -243,78 +227,5 @@
 <script src="nexus-guard.js"></script>
 <script src="https://protocold7.ru/network-bar.js?v=2" defer></script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js').catch(function(){});});}</script>
-<script>
-(function () {
-  var ov = document.getElementById('intro-overlay');
-  var v = document.getElementById('intro-video');
-  if (!ov || !v) return;
-  var skipBtn = document.getElementById('intro-skip');
-  var soundBtn = document.getElementById('intro-sound');
-  var playBtn = document.getElementById('intro-play');
-  var fallback = document.getElementById('intro-fallback');
-  var hint = document.getElementById('intro-soundhint');
-  var bg = document.querySelector('.intro__bg');
-  var done = false;
-
-  function hide() {
-    if (done) return;
-    done = true;
-    ov.classList.remove('is-on');
-    ov.setAttribute('aria-hidden', 'true');
-    try { v.pause(); } catch (e) {}
-    try { if (bg) bg.pause(); } catch (e) {}
-    document.body.classList.remove('intro-lock');
-  }
-  function showSound(on) {
-    if (!soundBtn) return;
-    soundBtn.classList.remove('hidden');
-    soundBtn.textContent = on ? 'Выключить звук' : 'Включить звук';
-    if (hint) hint.classList.toggle('hidden', on);
-  }
-  function show() {
-    ov.classList.add('is-on');
-    ov.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('intro-lock');
-    v.muted = true;
-    var p = v.play();
-    if (p && typeof p.then === 'function') {
-      p.then(function () { if (bg) { var q = bg.play(); if (q && q.catch) q.catch(function () {}); } showSound(false); })
-       .catch(function () {
-         v.muted = true;
-         var r = v.play();
-         if (r && r.catch) r.catch(function () { if (fallback) fallback.classList.remove('hidden'); });
-         else showSound(false);
-       });
-    } else {
-      showSound(false);
-    }
-  }
-
-  skipBtn.addEventListener('click', hide);
-  v.addEventListener('ended', hide);
-  v.addEventListener('error', hide);
-  document.addEventListener('keydown', function (e) {
-    if (!ov.classList.contains('is-on')) return;
-    if (e.key === 'Escape') hide();
-    if (e.key.toLowerCase() === 'm' || e.key === ' ') { soundBtn.click(); }
-  });
-  soundBtn.addEventListener('click', function () {
-    if (v.muted) {
-      v.muted = false;
-      v.volume = 1;
-      try { if (v.currentTime > 0.4) v.currentTime = 0; } catch (e) {}
-      var p = v.play();
-      if (p && p.catch) p.catch(function () { v.muted = true; showSound(false); });
-      showSound(!v.muted);
-    } else {
-      v.muted = true;
-      showSound(false);
-    }
-  });
-  if (playBtn) playBtn.addEventListener('click', function () { if (fallback) fallback.classList.add('hidden'); show(); });
-
-  show();
-})();
-</script>
   </body>
 </html>
