@@ -212,9 +212,8 @@ function canManageTeam(team) {
   return isLeaderOf(team, me) || isDeputyOf(team, me);
 }
 function canEditTeam(team) {
-  if (!state.user || !team) return false;
-  if (isAdmin()) return true;
-  return isLeaderOf(team, state.user.nick);
+  // Название и цвет отряда меняет только основатель сети.
+  return !!team && isFounder();
 }
 function canAppointLeader() { return isAdmin(); }
 function canAppointDeputy(team) {
@@ -526,11 +525,17 @@ function renderTeamDetail(team) {
     panels +=
       `<div class="panel">` +
       `<h3>Управление отрядом</h3>` +
-      `<p class="panel__sub">Название и цвет видны всем в общем списке команд.</p>` +
+      `<p class="panel__sub">Название и цвет видны всем в общем списке команд. Меняет их только основатель сети.</p>` +
       `<div class="panel__row">` +
       `<button class="btn btn--small btn--ghost" type="button" data-act="rename">Сменить название</button>` +
       `<button class="btn btn--small btn--ghost" type="button" data-act="recolor">Сменить цвет</button>` +
       `</div></div>`;
+  } else if (canManageTeam(team)) {
+    panels +=
+      `<div class="panel">` +
+      `<h3>Название и цвет отряда</h3>` +
+      `<p class="panel__sub">Глава и заместитель не могут менять название и цвет отряда — это делает только основатель сети. Напиши ему в Discord, если нужно переименовать или перекрасить.</p>` +
+      `</div>`;
   }
 
   if (canManageTeam(team)) {
@@ -830,7 +835,7 @@ async function createTeam(name, desc) {
 }
 
 function renameTeam(team) {
-  if (!canEditTeam(team)) { toast('Недостаточно прав', 'err'); return; }
+  if (!canEditTeam(team)) { toast('Название меняет только основатель', 'err'); return; }
   formModal({
     title: 'Сменить название',
     fields: [{ name: 'name', label: 'Название команды', maxlength: 24, value: team.name }],
@@ -848,7 +853,7 @@ function renameTeam(team) {
 }
 
 function recolorTeam(team) {
-  if (!canEditTeam(team)) { toast('Недостаточно прав', 'err'); return; }
+  if (!canEditTeam(team)) { toast('Цвет меняет только основатель', 'err'); return; }
   formModal({
     title: 'Сменить цвет',
     fields: [{ name: 'color', label: 'Цвет отряда', type: 'swatches', value: team.color }],
