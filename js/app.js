@@ -1365,6 +1365,8 @@ function wireEvents() {
       case 'donate-reward-del': window.DSV_DONATE && window.DSV_DONATE.deleteReward(btn.dataset.id); break;
       case 'donate-order-status': window.DSV_DONATE && window.DSV_DONATE.setOrderStatus(btn.dataset.id, btn.dataset.status); break;
       case 'donate-settings': window.DSV_DONATE && window.DSV_DONATE.editSettings(); break;
+      case 'donate-pay': window.DSV_DONATE && window.DSV_DONATE.payOnline(btn.dataset.id); break;
+      case 'donate-online-toggle': window.DSV_DONATE && window.DSV_DONATE.toggleOnline(); break;
       case 'donate-copy-code': window.DSV_DONATE && window.DSV_DONATE.copyCode(btn.dataset.code); break;
       case 'open-login': openAuth('login'); break;
       case 'open-register': openAuth('register'); break;

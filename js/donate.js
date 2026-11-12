@@ -15,7 +15,7 @@
 
   let rewards = [];
   let orders = [];
-  let settings = { requisites: '', note: '', sbp_qr: '' };
+  let settings = { requisites: '', note: '', sbp_qr: '', yookassa_enabled: 'false', yookassa_fn: 'dsv-yookassa' };
   let connected = false;
   let loadedOnce = false;
 
@@ -91,6 +91,36 @@
     const adm = document.getElementById('donate-admin');
     if (adm) D.renderAdmin();
   }
+
+  function onlineOn() { return settings.yookassa_enabled === 'true'; }
+  function fnName() { return settings.yookassa_fn || 'dsv-yookassa'; }
+
+  D.toggleOnline = async function () {
+    if (!isFounder()) { toast('Только для основателя', 'err'); return; }
+    const next = onlineOn() ? 'false' : 'true';
+    const { error } = await sb.from(T_SETTINGS).upsert({ key: 'yookassa_enabled', value: next });
+    if (error) { toast('Ошибка: ' + error.message, 'err'); return; }
+    await D.loadData();
+    toast(next === 'true' ? 'Онлайн-оплата включена' : 'Онлайн-оплата выключена');
+  };
+
+  D.payOnline = async function (orderId) {
+    if (!sb || !sb.functions) { toast('Платёжный сервис недоступен', 'err'); return; }
+    toast('Создаю счёт в ЮKassa…');
+    try {
+      const res = await sb.functions.invoke(fnName(), { body: { order_id: orderId } });
+      const data = res && res.data;
+      if (res.error || !data || !data.ok || !data.payment_url) {
+        toast('ЮKassa: ' + ((data && data.error) || (res.error && res.error.message) || 'не удалось создать счёт'), 'err');
+        return;
+      }
+      window.open(data.payment_url, '_blank', 'noopener');
+      toast('Открой вкладку оплаты и подтверди платёж');
+      await D.loadData();
+    } catch (e) {
+      toast('Ошибка платежа: ' + (e && e.message || e), 'err');
+    }
+  };
 
   /* ---------- public page ---------- */
   D.render = function () {
@@ -220,6 +250,7 @@
   function openPayModal(orderId, price, title) {
     const code = shortCode(orderId);
     const reqs = reqLines(settings.requisites);
+    const online = onlineOn();
     const overlay = document.createElement('div');
     overlay.className = 'modal';
     overlay.dataset.dynamic = '1';
@@ -238,7 +269,10 @@
       (settings.sbp_qr || reqs.length
         ? '<p class="dg-pay__howto">Открой приложение банка &rarr; «Оплата по QR» &rarr; отсканируйте код или приложи файл. В комментарии платежа укажи код заявки, чтобы я нашёл твой платёж.</p>'
         : '') +
-      '<p class="dg-pay__note">' + esc(settings.note || DEFAULT_NOTE) + '</p>' +
+      '<p class="dg-pay__note">' + esc(settings.note || DEFAULT_NOTE) + (online ? ' При онлайн-оплате чек пришлю ссылкой после зачисления.' : '') + '</p>' +
+      (onlineOn()
+        ? '<button class="btn btn--primary btn--block" type="button" data-act="donate-pay" data-id="' + esc(orderId) + '">Оплатить онлайн (карта, СБП, SberPay)</button>'
+        : '') +
       '<button class="btn btn--primary btn--block" type="button" data-act="donate-copy-code" data-code="' + esc(code) + '">Скопировать код заявки</button>' +
       '</div>';
     document.body.appendChild(overlay);
@@ -335,6 +369,7 @@
       fields: [
         { name: 'requisites', label: 'Реквизиты (каждая строка отдельно)', type: 'textarea', maxlength: 600, value: settings.requisites || '', placeholder: 'СБП: +7 900 000-00-00\nПолучатель: Иван И. И., самозанятый' },
         { name: 'sbp_qr', label: 'QR СБП: ссылка на картинку (или путь sbp-qr.png)', maxlength: 300, required: false, value: settings.sbp_qr || '', placeholder: 'sbp-qr.png' },
+        { name: 'yookassa_fn', label: 'Имя платёжной функции (Edge Function)', maxlength: 60, required: false, value: settings.yookassa_fn || 'dsv-yookassa', placeholder: 'dsv-yookassa' },
         { name: 'note', label: 'Текст над лотами', type: 'textarea', maxlength: 400, value: settings.note || '', placeholder: 'Куда идут донаты и сколько ждать выдачи' }
       ],
       submitText: 'Сохранить',
@@ -342,7 +377,8 @@
         const rows = [
           { key: 'requisites', value: v.requisites },
           { key: 'note', value: v.note },
-          { key: 'sbp_qr', value: v.sbp_qr || '' }
+          { key: 'sbp_qr', value: v.sbp_qr || '' },
+          { key: 'yookassa_fn', value: v.yookassa_fn || 'dsv-yookassa' }
         ];
         for (const row of rows) {
           const { error } = await sb.from(T_SETTINGS).upsert({ key: row.key, value: row.value });
@@ -378,7 +414,9 @@
       '<div class="panel__row">' +
       '<button class="btn btn--small btn--primary" type="button" data-act="donate-reward-new">Создать лот</button>' +
       '<button class="btn btn--small btn--ghost" type="button" data-act="donate-settings">Приём платежей</button>' +
-      '</div>';
+      '<button class="btn btn--small ' + (onlineOn() ? 'btn--danger' : 'btn--ghost') + '" type="button" data-act="donate-online-toggle">' + (onlineOn() ? 'Выключить ЮKassa' : 'Включить ЮKassa') + '</button>' +
+      '</div>' +
+      '<p class="panel__sub" style="margin-top:10px">Онлайн-оплата: <b>' + (onlineOn() ? 'включена (карты, СБП, SberPay, T-Pay, ЮMoney)' : 'выключена, платёж по реквизитам вручную') + '</b></p>';
 
     html += all.length
       ? '<div class="admin-list" style="margin-top:14px">' + all.map(adminRewardRow).join('') + '</div>'
