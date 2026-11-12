@@ -15,7 +15,7 @@
 
   let rewards = [];
   let orders = [];
-  let settings = { requisites: '', note: '' };
+  let settings = { requisites: '', note: '', sbp_qr: '' };
   let connected = false;
   let loadedOnce = false;
 
@@ -229,9 +229,15 @@
       '<h2 class="modal__title">Как оплатить</h2>' +
       '<p class="dg-pay__sum"><b>' + money(price) + '</b> — ' + esc(title) + '</p>' +
       '<p class="dg-pay__code">Код заявки: <code>' + esc(code) + '</code> — укажи его в комментарии платежа, так я быстрее всё проверю.</p>' +
+      (settings.sbp_qr
+        ? '<div class="dg-pay__qrbox"><img class="dg-pay__qr" src="' + esc(settings.sbp_qr) + '" alt="QR-код СБП"><a class="dg-pay__qrlink" href="' + esc(settings.sbp_qr) + '" download>Скачать QR</a></div>'
+        : '') +
       (reqs.length
         ? '<div class="dg-pay__req">' + reqs.map(function (l) { return '<div class="dg-pay__line">' + esc(l) + '</div>'; }).join('') + '</div>'
         : '<p class="muted">Реквизиты ещё не настроены. Основатель допишет их в админ-панели, а пока напиши в Discord.</p>') +
+      (settings.sbp_qr || reqs.length
+        ? '<p class="dg-pay__howto">Открой приложение банка &rarr; «Оплата по QR» &rarr; отсканируйте код или приложи файл. В комментарии платежа укажи код заявки, чтобы я нашёл твой платёж.</p>'
+        : '') +
       '<p class="dg-pay__note">' + esc(settings.note || DEFAULT_NOTE) + '</p>' +
       '<button class="btn btn--primary btn--block" type="button" data-act="donate-copy-code" data-code="' + esc(code) + '">Скопировать код заявки</button>' +
       '</div>';
@@ -327,14 +333,16 @@
     formModal({
       title: 'Приём платежей',
       fields: [
-        { name: 'requisites', label: 'Реквизиты (каждая строка отдельно)', type: 'textarea', maxlength: 600, value: settings.requisites || '', placeholder: 'Карта: 2200 0000 0000 0000\nСБП: +7 900 000-00-00' },
+        { name: 'requisites', label: 'Реквизиты (каждая строка отдельно)', type: 'textarea', maxlength: 600, value: settings.requisites || '', placeholder: 'СБП: +7 900 000-00-00\nПолучатель: Иван И. И., самозанятый' },
+        { name: 'sbp_qr', label: 'QR СБП: ссылка на картинку (или путь sbp-qr.png)', maxlength: 300, required: false, value: settings.sbp_qr || '', placeholder: 'sbp-qr.png' },
         { name: 'note', label: 'Текст над лотами', type: 'textarea', maxlength: 400, value: settings.note || '', placeholder: 'Куда идут донаты и сколько ждать выдачи' }
       ],
       submitText: 'Сохранить',
       async onSubmit(v) {
         const rows = [
           { key: 'requisites', value: v.requisites },
-          { key: 'note', value: v.note }
+          { key: 'note', value: v.note },
+          { key: 'sbp_qr', value: v.sbp_qr || '' }
         ];
         for (const row of rows) {
           const { error } = await sb.from(T_SETTINGS).upsert({ key: row.key, value: row.value });
