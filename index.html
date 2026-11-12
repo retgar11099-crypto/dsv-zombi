@@ -9,11 +9,25 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=5">
+  <link rel="stylesheet" href="css/style.css?v=6">
 <link rel="manifest" href="manifest.webmanifest" />
     <meta name="theme-color" content="#101410" />
 </head>
 <body>
+<div class="intro" id="intro-overlay" aria-hidden="true">
+  <div class="intro__stage">
+    <div class="intro__brand">DSV-<span>ZOMBI</span></div>
+    <video class="intro__video" id="intro-video" src="dsv-intro.mp4" playsinline preload="auto" muted></video>
+    <div class="intro__actions">
+      <button class="btn btn--small btn--ghost hidden" type="button" id="intro-sound">Включить звук</button>
+      <button class="btn btn--small btn--primary" type="button" id="intro-skip">Пропустить</button>
+    </div>
+    <div class="intro__fallback hidden" id="intro-fallback">
+      <p>Заставка не запустилась сама.</p>
+      <button class="btn btn--small btn--primary" type="button" id="intro-play">Смотреть интро</button>
+    </div>
+  </div>
+</div>
 
 <header class="header">
   <div class="container header__inner">
@@ -220,5 +234,63 @@
 <script src="nexus-guard.js"></script>
 <script src="https://protocold7.ru/network-bar.js?v=2" defer></script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js').catch(function(){});});}</script>
+<script>
+(function () {
+  var ov = document.getElementById('intro-overlay');
+  var v = document.getElementById('intro-video');
+  if (!ov || !v) return;
+  var skipBtn = document.getElementById('intro-skip');
+  var soundBtn = document.getElementById('intro-sound');
+  var playBtn = document.getElementById('intro-play');
+  var fallback = document.getElementById('intro-fallback');
+  var done = false;
+
+  function hide() {
+    if (done) return;
+    done = true;
+    ov.classList.remove('is-on');
+    ov.setAttribute('aria-hidden', 'true');
+    try { v.pause(); } catch (e) {}
+    document.body.classList.remove('intro-lock');
+  }
+  function show() {
+    ov.classList.add('is-on');
+    ov.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('intro-lock');
+    v.muted = true;
+    var p = v.play();
+    if (p && p.catch) {
+      p.catch(function () {
+        v.muted = true;
+        var q = v.play();
+        if (q && q.catch) q.catch(function () { fallback.classList.remove('hidden'); });
+        else soundBtn.classList.remove('hidden');
+      });
+    } else {
+      soundBtn.classList.remove('hidden');
+    }
+  }
+
+  skipBtn.addEventListener('click', hide);
+  v.addEventListener('ended', hide);
+  v.addEventListener('error', hide);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hide(); });
+  soundBtn.addEventListener('click', function () {
+    v.muted = false;
+    v.volume = 1;
+    var p = v.play();
+    if (p && p.catch) p.catch(function () { v.muted = true; });
+    soundBtn.classList.add('hidden');
+  });
+  if (playBtn) playBtn.addEventListener('click', function () { fallback.classList.add('hidden'); show(); });
+
+  var seen = false;
+  try { seen = sessionStorage.getItem('dsvIntroShown') === '1'; } catch (e) {}
+  if (!seen) {
+    try { sessionStorage.setItem('dsvIntroShown', '1'); } catch (e) {}
+    show();
+  }
+})();
+</script>
   </body>
 </html>
