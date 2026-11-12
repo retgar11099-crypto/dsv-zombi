@@ -147,7 +147,9 @@
       '<span class="donate-stat"><b>' + money(collected) + '</b><i>собрано</i></span>' +
       '<span class="donate-stat"><b>' + active.length + '</b><i>лотов доступно</i></span>' +
       '<span class="donate-stat"><b>' + orders.filter(function (o) { return o.status === 'new'; }).length + '</b><i>заявок ждут</i></span>' +
-      '</div></div>';
+      '</div>' +
+      '<p class="donate-reqslink"><a href="requisites.html">Реквизиты, что выдаётся и условия возврата</a></p>' +
+      '</div>';
 
     if (!connected) {
       html +=
@@ -270,6 +272,7 @@
         ? '<p class="dg-pay__howto">Открой приложение банка &rarr; «Оплата по QR» &rarr; отсканируйте код или приложи файл. В комментарии платежа укажи код заявки, чтобы я нашёл твой платёж.</p>'
         : '') +
       '<p class="dg-pay__note">' + esc(settings.note || DEFAULT_NOTE) + (online ? ' При онлайн-оплате чек пришлю ссылкой после зачисления.' : '') + '</p>' +
+      '<p class="donate-reqslink"><a href="requisites.html" target="_blank" rel="noopener">Реквизиты и правила</a></p>' +
       (onlineOn()
         ? '<button class="btn btn--primary btn--block" type="button" data-act="donate-pay" data-id="' + esc(orderId) + '">Оплатить онлайн (карта, СБП, SberPay)</button>'
         : '') +

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Реквизиты и правила доната DSV-Zombi</title>
+  <meta name="description" content="Реквизиты получателя платежей, статус самозанятого, что выдаётся за донат, сроки и условия возврата на сервере DSV-Zombi.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=10">
+</head>
+<body>
+
+<header class="header">
+  <div class="container header__inner">
+    <a class="logo" href="./">DSV-<span>ZOMBI</span></a>
+    <nav class="nav">
+      <a href="./#/home">Главная</a>
+      <a href="./#/donate">Донат</a>
+    </nav>
+  </div>
+</header>
+
+<main class="container" style="padding:36px 20px 60px;max-width:860px">
+
+  <h1 class="page-title" style="font-size:clamp(24px,4.6vw,34px)">Реквизиты и правила приёма платежей</h1>
+  <p class="section__lead">Страница предназначена для посетителей сайта и для платёжного сервиса, через который принимаются донаты на сервер DSV-Zombi.</p>
+
+  <section class="section" style="margin-top:28px">
+    <h2 class="section__title">Получатель платежей</h2>
+    <div class="steps" style="grid-template-columns:1fr">
+      <div class="step">
+        <h3>Статус</h3>
+        <p>Платежи принимает <b>физическое лицо, применяющее специальный налоговый режим «Налог на профессиональный доход» (самозанятый)</b>. ИП и юрлицо не используется. Ставка налога: 4% с поступлений от физических лиц, доход отражается в приложении «Мой налог».</p>
+      </div>
+      <div class="step">
+        <h3>ФИО получателя</h3>
+        <p><code>[[УКАЖИ_Фамилия_Имя_Отчество]]</code></p>
+      </div>
+      <div class="step">
+        <h3>ИНН</h3>
+        <p><code>[[УКАЖИ_12_значный_ИНН]]</code></p>
+      </div>
+      <div class="step">
+        <h3>Регион регистрации деятельности</h3>
+        <p><code>[[УКАЖИ_РЕГИОН]]</code></p>
+      </div>
+      <div class="step">
+        <h3>Способы приёма</h3>
+        <p>Банковские карты и СБП через платёжный сервис ЮKassa; при необходимости прямой перевод по СБП на номер телефона <code>[[УКАЖИ_ТЕЛЕФОН_ДЛЯ_СБП, формат +7 9XX XXX-XX-XX]]</code>. Чеки формируются в мобильном приложении «Мой налог» и отправляются плательщику ссылкой.</p>
+      </div>
+      <div class="step">
+        <h3>Контакт для вопросов по платежам</h3>
+        <p>Discord: <code>[[УКАЖИ_НИК_В_DISCORD]]</code> · e-mail для чеков: <code>[[УКАЖИ_E-MAIL]]</code></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section__title">Что приобретается за донат</h2>
+    <p class="section__lead">Донат на DSV-Zombi это добровольное финансовое участие в содержании проекта. За него начисляются не игровые ресурсы, а условия доступа и косметические отметки:</p>
+    <div class="steps">
+      <div class="step">
+        <span class="step__num">1</span>
+        <h3>Приоритетный вход</h3>
+        <p>Возможность зайти на сервер, когда основные слоты заняты. Не даёт боевых или ресурсных преимуществ.</p>
+      </div>
+      <div class="step">
+        <span class="step__num">2</span>
+        <h3>Отметки и косметика</h3>
+        <p>Плашка в списке игроков и в Discord, цветной ник в чате, доступ в закрытый канал поддержки.</p>
+      </div>
+      <div class="step">
+        <span class="step__num">3</span>
+        <h3>Удобства без преимущества</h3>
+        <p>Личный контейнер для хранения, телепорт к своей базе, если они не влияют на баланс PvP и добычу.</p>
+      </div>
+      <div class="step">
+        <span class="step__num">4</span>
+        <h3>Спасибо</h3>
+        <p>Минимальный лот без привилегий: поддержка оплаты хостинга, доменов и защиты от DDoS.</p>
+      </div>
+    </div>
+    <p class="muted" style="margin-top:14px">Точный состав каждого лота виден в карточке на странице <a href="./#/donate" style="color:var(--green2)">/donate</a>. Состав лотов может меняться, изменения не ухудшают уже выданные условия.</p>
+  </section>
+
+  <section class="section">
+    <h2 class="section__title">Как проходит оплата и выдача</h2>
+    <div class="steps">
+      <div class="step">
+        <span class="step__num">1</span>
+        <h3>Заявка</h3>
+        <p>Игрок выбирает лот на странице «Донат», указывает игровой ник и контакт, получает номер заявки.</p>
+      </div>
+      <div class="step">
+        <span class="step__num">2</span>
+        <h3>Оплата</h3>
+        <p>Онлайн через форму ЮKassa (карта, СБП, SberPay, T-Pay, ЮMoney) либо перевод по реквизитам с указанием номера заявки.</p>
+      </div>
+      <div class="step">
+        <span class="step__num">3</span>
+        <h3>Проверка и выдача</h3>
+        <p>После зачисления статус заявки меняется на «Оплачена», затем выдаются условия и статус становится «Выдано». По срокам: до 24 часов, в редких случаях до 72 часов (например, при техническом обновлении сервера).</p>
+      </div>
+      <div class="step">
+        <span class="step__num">4</span>
+        <h3>Чек</h3>
+        <p>Чек НПД формируется после получения денег и отправляется ссылкой в Discord или на указанную почту.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section__title">Возврат и отказ</h2>
+    <div class="steps">
+      <div class="step">
+        <span class="step__num">A</span>
+        <h3>До выдачи</h3>
+        <p>Если условия ещё не выданы, деньги возвращаются полностью по запросу в Discord в течение 3 рабочих дней тем же способом, которым была оплата.</p>
+      </div>
+      <div class="step">
+        <span class="step__num">B</span>
+        <h3>После выдачи</h3>
+        <p>Если условия уже предоставлены, возврат не производится: услуга оказана в полном объёме.</p>
+      </div>
+      <div class="step">
+        <span class="step__num">C</span>
+        <h3>Если сервер закрылся</h3>
+        <p>При остановке проекта до окончания оплаченного срока оставшаяся часть возвращается пропорционально неиспользованному времени.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section__title">Персональные данные и правила проекта</h2>
+    <p class="section__lead">Для выдачи условий принимаются ник, Discord-контакт и комментарий к заявке. Эти данные хранятся в базе заявок и используются только для начисления привилегий и связи по вопросу платежа. Если правила сервера были нарушены, оплата возвращается тем же способом, а условия не начисляются. Донат не является благотворительным пожертвованием по Федеральному закону № 135-ФЗ и не даёт прав собственности на сервер или его контент. Minecraft является собственностью Mojang Studios и Microsoft; сайт и сервер не аффилированы с Mojang и Microsoft.</p>
+  </section>
+
+  <div class="section__cta" style="margin-top:26px">
+    <a class="btn btn--primary" href="./#/donate">Перейти к лотам</a>
+    <a class="btn btn--ghost" href="./">На главную</a>
+  </div>
+
+  <p class="muted" style="margin-top:22px;font-size:12px">Редакция от 12.11.2026. Вопросы по реквизитам и условиям: Discord, контакт указан выше.</p>
+
+</main>
+
+<footer class="footer">
+  <div class="container footer__inner">
+    <div>DSV-Zombi реквизиты и правила приёма платежей</div>
+    <div>© 2026 DSV-Zombi</div>
+  </div>
+</footer>
+
+</body>
+</html>

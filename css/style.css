@@ -330,3 +330,6 @@ body.intro-lock{overflow:hidden}
 .dg-pay__qrlink{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#0a0d0b;text-decoration:none;border-bottom:1px dashed rgba(10,13,11,.4)}
 .dg-pay__qrlink:hover{color:#1b4d12}
 .dg-pay__howto{font-size:12px;color:var(--muted);line-height:1.6;margin:0 0 16px}
+.donate-reqslink{margin:14px 0 0;font-size:12px;letter-spacing:.08em}
+.donate-reqslink a{color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+.donate-reqslink a:hover{color:var(--green2)}
