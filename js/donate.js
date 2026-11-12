@@ -421,6 +421,16 @@
     );
   }
 
+  // self-boot: if the page opened directly on #/donate, paint as soon as DOM is ready
+  function boot() {
+    if (location.hash === '#/donate') {
+      const box = document.getElementById('donate-detail');
+      if (box && document.getElementById('view-donate') && !document.getElementById('view-donate').classList.contains('hidden') && !box.innerHTML) D.render();
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else setTimeout(boot, 0);
+
   D.stats = function () {
     return { rewards: rewards.length, orders: orders.length, connected: connected };
   };
