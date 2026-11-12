@@ -15,7 +15,7 @@
 
   let rewards = [];
   let orders = [];
-  let settings = { requisites: '', note: '', sbp_qr: '', yookassa_enabled: 'false', yookassa_fn: 'dsv-yookassa' };
+  let settings = { requisites: '', note: '', sbp_qr: '', yookassa_enabled: 'false', yookassa_fn: 'dsv-yookassa', easydonate_url: '' };
   let connected = false;
   let loadedOnce = false;
 
@@ -92,6 +92,7 @@
     if (adm) D.renderAdmin();
   }
 
+  function edUrl() { return String(settings.easydonate_url || '').trim(); }
   function onlineOn() { return settings.yookassa_enabled === 'true'; }
   function fnName() { return settings.yookassa_fn || 'dsv-yookassa'; }
 
@@ -200,7 +201,10 @@
       '<div class="dg-price">' + money(r.price) + '</div>' +
       (r.description ? '<p class="dg-desc">' + esc(r.description) + '</p>' : '') +
       (perks.length ? '<ul class="dg-perks">' + perks.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul>' : '') +
-      '<button class="btn btn--small btn--primary dg-buy" type="button" data-act="donate-order" data-id="' + esc(r.id) + '">Поддержать</button>' +
+      (edUrl()
+        ? '<a class="btn btn--small btn--primary dg-buy" href="' + esc(edUrl()) + '" target="_blank" rel="noopener">Купить в магазине доната</a>' +
+          '<button class="btn btn--small btn--ghost dg-buy" type="button" data-act="donate-order" data-id="' + esc(r.id) + '">Оплатить по реквизитам</button>'
+        : '<button class="btn btn--small btn--primary dg-buy" type="button" data-act="donate-order" data-id="' + esc(r.id) + '">Поддержать</button>') +
       '</article>'
     );
   }
@@ -372,6 +376,7 @@
       fields: [
         { name: 'requisites', label: 'Реквизиты (каждая строка отдельно)', type: 'textarea', maxlength: 600, value: settings.requisites || '', placeholder: 'СБП: +7 900 000-00-00\nПолучатель: Иван И. И., самозанятый' },
         { name: 'sbp_qr', label: 'QR СБП: ссылка на картинку (или путь sbp-qr.png)', maxlength: 300, required: false, value: settings.sbp_qr || '', placeholder: 'sbp-qr.png' },
+        { name: 'easydonate_url', label: 'EasyDonate: ссылка на твой магазин', maxlength: 300, required: false, value: settings.easydonate_url || '', placeholder: 'https://dsvzombi.easydonate.ru' },
         { name: 'yookassa_fn', label: 'Имя платёжной функции (Edge Function)', maxlength: 60, required: false, value: settings.yookassa_fn || 'dsv-yookassa', placeholder: 'dsv-yookassa' },
         { name: 'note', label: 'Текст над лотами', type: 'textarea', maxlength: 400, value: settings.note || '', placeholder: 'Куда идут донаты и сколько ждать выдачи' }
       ],
@@ -381,7 +386,8 @@
           { key: 'requisites', value: v.requisites },
           { key: 'note', value: v.note },
           { key: 'sbp_qr', value: v.sbp_qr || '' },
-          { key: 'yookassa_fn', value: v.yookassa_fn || 'dsv-yookassa' }
+          { key: 'yookassa_fn', value: v.yookassa_fn || 'dsv-yookassa' },
+          { key: 'easydonate_url', value: v.easydonate_url || '' }
         ];
         for (const row of rows) {
           const { error } = await sb.from(T_SETTINGS).upsert({ key: row.key, value: row.value });
@@ -419,7 +425,7 @@
       '<button class="btn btn--small btn--ghost" type="button" data-act="donate-settings">Приём платежей</button>' +
       '<button class="btn btn--small ' + (onlineOn() ? 'btn--danger' : 'btn--ghost') + '" type="button" data-act="donate-online-toggle">' + (onlineOn() ? 'Выключить ЮKassa' : 'Включить ЮKassa') + '</button>' +
       '</div>' +
-      '<p class="panel__sub" style="margin-top:10px">Онлайн-оплата: <b>' + (onlineOn() ? 'включена (карты, СБП, SberPay, T-Pay, ЮMoney)' : 'выключена, платёж по реквизитам вручную') + '</b></p>';
+      '<p class="panel__sub" style="margin-top:10px">Онлайн-оплата: <b>' + (onlineOn() ? 'включена (карты, СБП, SberPay, T-Pay, ЮMoney)' : 'выключена, платёж по реквизитам вручную') + '</b> · EasyDonate: <b>' + (edUrl() ? 'подключён' : 'не указан') + '</b></p>';
 
     html += all.length
       ? '<div class="admin-list" style="margin-top:14px">' + all.map(adminRewardRow).join('') + '</div>'
