@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=6">
+  <link rel="stylesheet" href="css/style.css?v=7">
 <link rel="manifest" href="manifest.webmanifest" />
     <meta name="theme-color" content="#101410" />
 </head>
@@ -17,7 +17,9 @@
 <div class="intro" id="intro-overlay" aria-hidden="true">
   <div class="intro__stage">
     <div class="intro__brand">DSV-<span>ZOMBI</span></div>
+    <video class="intro__bg" aria-hidden="true" src="dsv-intro.mp4" playsinline preload="auto" muted loop autoplay></video>
     <video class="intro__video" id="intro-video" src="dsv-intro.mp4" playsinline preload="auto" muted></video>
+    <div class="intro__soundhint" id="intro-soundhint">Нажми <b>Включить звук</b>, чтобы слышать</div>
     <div class="intro__actions">
       <button class="btn btn--small btn--ghost hidden" type="button" id="intro-sound">Включить звук</button>
       <button class="btn btn--small btn--primary" type="button" id="intro-skip">Пропустить</button>
@@ -243,6 +245,8 @@
   var soundBtn = document.getElementById('intro-sound');
   var playBtn = document.getElementById('intro-play');
   var fallback = document.getElementById('intro-fallback');
+  var hint = document.getElementById('intro-soundhint');
+  var bg = document.querySelector('.intro__bg');
   var done = false;
 
   function hide() {
@@ -251,7 +255,14 @@
     ov.classList.remove('is-on');
     ov.setAttribute('aria-hidden', 'true');
     try { v.pause(); } catch (e) {}
+    try { if (bg) bg.pause(); } catch (e) {}
     document.body.classList.remove('intro-lock');
+  }
+  function showSound(on) {
+    if (!soundBtn) return;
+    soundBtn.classList.remove('hidden');
+    soundBtn.textContent = on ? 'Выключить звук' : 'Включить звук';
+    if (hint) hint.classList.toggle('hidden', on);
   }
   function show() {
     ov.classList.add('is-on');
@@ -259,37 +270,43 @@
     document.body.classList.add('intro-lock');
     v.muted = true;
     var p = v.play();
-    if (p && p.catch) {
-      p.catch(function () {
-        v.muted = true;
-        var q = v.play();
-        if (q && q.catch) q.catch(function () { fallback.classList.remove('hidden'); });
-        else soundBtn.classList.remove('hidden');
-      });
+    if (p && typeof p.then === 'function') {
+      p.then(function () { if (bg) { var q = bg.play(); if (q && q.catch) q.catch(function () {}); } showSound(false); })
+       .catch(function () {
+         v.muted = true;
+         var r = v.play();
+         if (r && r.catch) r.catch(function () { if (fallback) fallback.classList.remove('hidden'); });
+         else showSound(false);
+       });
     } else {
-      soundBtn.classList.remove('hidden');
+      showSound(false);
     }
   }
 
   skipBtn.addEventListener('click', hide);
   v.addEventListener('ended', hide);
   v.addEventListener('error', hide);
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hide(); });
-  soundBtn.addEventListener('click', function () {
-    v.muted = false;
-    v.volume = 1;
-    var p = v.play();
-    if (p && p.catch) p.catch(function () { v.muted = true; });
-    soundBtn.classList.add('hidden');
+  document.addEventListener('keydown', function (e) {
+    if (!ov.classList.contains('is-on')) return;
+    if (e.key === 'Escape') hide();
+    if (e.key.toLowerCase() === 'm' || e.key === ' ') { soundBtn.click(); }
   });
-  if (playBtn) playBtn.addEventListener('click', function () { fallback.classList.add('hidden'); show(); });
+  soundBtn.addEventListener('click', function () {
+    if (v.muted) {
+      v.muted = false;
+      v.volume = 1;
+      try { if (v.currentTime > 0.4) v.currentTime = 0; } catch (e) {}
+      var p = v.play();
+      if (p && p.catch) p.catch(function () { v.muted = true; showSound(false); });
+      showSound(!v.muted);
+    } else {
+      v.muted = true;
+      showSound(false);
+    }
+  });
+  if (playBtn) playBtn.addEventListener('click', function () { if (fallback) fallback.classList.add('hidden'); show(); });
 
-  var seen = false;
-  try { seen = sessionStorage.getItem('dsvIntroShown') === '1'; } catch (e) {}
-  if (!seen) {
-    try { sessionStorage.setItem('dsvIntroShown', '1'); } catch (e) {}
-    show();
-  }
+  show();
 })();
 </script>
   </body>
