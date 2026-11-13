@@ -157,7 +157,7 @@
         '<div class="panel donate-off">' +
         '<h3>Донат пока не подключён</h3>' +
         '<p class="panel__sub">Таблицы пожертвований ещё не созданы. Основатель запустит их в базу, и здесь появятся лоты. Поддержать сервер уже сейчас можно напрямую в Discord.</p>' +
-        '<div class="panel__row"><a class="btn btn--primary btn--small" href="https://discord.gg/RJvGhBAdmc" target="_blank" rel="noopener">Написать в Discord</a></div>' +
+        '<div class="panel__row"><a class="btn btn--primary btn--small" href="https://discord.gg/JRdhRBzQw2" target="_blank" rel="noopener">Подать тикет в Discord</a></div>' +
         '</div>';
       box.innerHTML = html;
       return;
