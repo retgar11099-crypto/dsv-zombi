@@ -675,6 +675,59 @@ html body .badge.badge-accent-blured{
   color:#06140a !important;
 }
 
+/* ---------- Тема Lullaby ---------- */
+/* Lullaby красит main и футер своими классами, перебиваем их. */
+main,
+main.bg-elegant-dark,
+.bg-elegant-dark,
+.bg-elegant,
+.bg-elegant-night{
+  background-color:transparent !important;
+  background-image:none !important;
+}
+
+footer.section,
+footer.bg-elegant-night{
+  background-color:var(--dsv-bg2) !important;
+  border-top:1px solid var(--dsv-line) !important;
+}
+
+.navbar-main{
+  background:rgba(10,13,11,.94) !important;
+  border-bottom:1px solid var(--dsv-line) !important;
+}
+
+/* синий оверлей Lullaby на фоне меняем на тёмно-зелёный */
+.overlay-dark:before{
+  background:#06140a !important;
+  opacity:.62 !important;
+}
+
+/* строки товаров Lullaby */
+.bg-dark-light{
+  background-color:var(--dsv-card) !important;
+}
+
+.shop-item .card,
+.shop-item .card-body,
+.chosen-product,
+.chosen-product .card{
+  background-color:var(--dsv-card2) !important;
+  border-color:var(--dsv-line) !important;
+  border-radius:10px !important;
+  box-shadow:none !important;
+}
+
+.shop-item:hover .card{
+  border-color:rgba(76,209,55,.55) !important;
+  background:rgba(76,209,55,.06) !important;
+  transform:none !important;
+}
+
+.shop-item h6{
+  color:var(--dsv-text) !important;
+}
+
 /* ---------- Уведомления ---------- */
 .alert{
   background:var(--dsv-card) !important;
@@ -753,7 +806,8 @@ footer a:hover,.footer a:hover{
   color:var(--dsv-muted) !important;
 }
 
-.text-primary{
+.text-primary,
+html body .text-primary{
   color:var(--dsv-green2) !important;
 }
 

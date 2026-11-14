@@ -447,7 +447,7 @@
     return (
       '<div class="admin-row dg-rew" style="--dg:' + esc(r.color || '#4cd137') + '">' +
       '<div class="member__info">' +
-      '<span class="member__nick"><a class="nick-link" href="#/donate">' + esc(r.title) + '</a> · ' + money(r.price) + '</span>' +
+      '<span class="member__nick">' + esc(r.title) + ' · ' + money(r.price) + '</span>' +
       '<span class="admin-row__role">' + (r.active ? 'активен' : 'скрыт') + (r.badge ? ' · ' + esc(r.badge) : '') + '</span>' +
       '</div>' +
       '<div class="member__actions">' +

@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=12">
+  <link rel="stylesheet" href="css/style.css?v=13">
 <link rel="manifest" href="manifest.webmanifest" />
     <meta name="theme-color" content="#101410" />
 </head>
@@ -22,7 +22,7 @@
       <a href="#/home" data-navlink>Главная</a>
       <a href="#/teams" data-navlink>Команды</a>
       <a href="#/account" data-navlink>Кабинет</a>
-      <a href="#/donate" data-navlink class="nav-donate">Донат</a>
+      <a href="https://dsv-zombi.easydonate.ru/" class="nav-donate" rel="noopener">Донат</a>
       <a href="#/admin" data-navlink id="nav-admin" class="hidden">Админы</a>
     </nav>
     <div class="header__auth" id="header-auth"></div>
@@ -41,7 +41,7 @@
       <div class="hero__actions">
         <a class="btn btn--primary" id="dl-launcher" href="https://github.com/retgar11099-crypto/dsv-zombi/releases/download/v1.6.4/DSV-ZOMBI-Setup-1.6.4.exe" download><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 19h16"/></svg>Скачать лаунчер</a>
         <a class="btn btn--ghost" href="#/teams">Отряды и команды</a>
-        <a class="btn btn--ghost btn-donate" href="#/donate">Поддержать сервер</a>
+        <a class="btn btn--ghost btn-donate" href="https://dsv-zombi.easydonate.ru/" rel="noopener">Поддержать сервер</a>
         <a class="btn btn--ghost" href="#lore">Что произошло?</a>
       </div>
       <div class="server-ip">
@@ -133,6 +133,28 @@
         <a class="btn btn--primary" href="#/teams">Перейти к командам</a>
       </div>
     </section>
+
+    <section class="section" id="support">
+      <div class="support">
+        <div class="support__body">
+          <span class="support__kicker">Поддержка проекта</span>
+          <h2 class="support__title">Сервер живёт на донаты</h2>
+          <p class="support__lead">Хостинг, домен, защита от DDoS и обновления оплачиваются из поддержки игроков. Заходи в магазин: карта или СБП, чек придёт от самозанятого.</p>
+          <div class="support__actions">
+            <a class="btn btn--primary" href="https://dsv-zombi.easydonate.ru/" rel="noopener">Перейти в магазин</a>
+            <a class="btn btn--ghost" href="requisites.html">Реквизиты и правила</a>
+          </div>
+          <div class="support__meta">
+            <span>от 100 ₽</span>
+            <span>карта · СБП</span>
+            <span>чек НПД</span>
+          </div>
+        </div>
+        <div class="support__art" aria-hidden="true">
+          <div class="support__ring"><span>DSV</span></div>
+        </div>
+      </div>
+    </section>
   </section>
 
   <section id="view-teams" class="view hidden">
@@ -172,6 +194,7 @@
   <div class="container footer__inner">
     <div>DSV-Zombi — фанатский сервер Minecraft. Не связан с Mojang Studios и Microsoft.</div>
     <div><a href="requisites.html" style="color:var(--muted)">Реквизиты и правила доната</a></div>
+    <div><a href="https://dsv-zombi.easydonate.ru/" rel="noopener" style="color:var(--muted)">Магазин доната</a></div>
     <div><a href="https://discord.gg/4vcDRqMnz3" target="_blank" rel="noopener" style="color:var(--muted)">Подать тикет в Discord</a></div>
     <div>© 2026 DSV-Zombi</div>
   </div>
@@ -222,9 +245,9 @@
 <div class="toast hidden" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/config.js?v=6"></script>
-<script src="js/donate.js?v=8"></script>
-<script src="js/app.js?v=6"></script>
+<script src="js/config.js?v=7"></script>
+<script src="js/donate.js?v=9"></script>
+<script src="js/app.js?v=7"></script>
 <script>window.NEXUS_SITE = 'dsv-zombi';</script>
 <script src="nexus-guard.js"></script>
 <script src="https://protocold7.ru/network-bar.js?v=2" defer></script>

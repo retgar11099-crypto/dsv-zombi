@@ -363,10 +363,7 @@ function route() {
   }
 
   if (hash === '#/donate') {
-    showView('donate');
-    setActiveNav('#/donate');
-    if (window.DSV_DONATE) window.DSV_DONATE.render();
-    window.scrollTo(0, 0);
+    location.replace('https://dsv-zombi.easydonate.ru/');
     return;
   }
 
