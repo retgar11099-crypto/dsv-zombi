@@ -1,0 +1,675 @@
+/* =========================================================
+   DSV-ZOMBI — тема для магазина EasyDonate
+   Загружается в: Личный кабинет -> Оформление -> Кастомные CSS стили
+   Стиль: тёмный фон, зелёный акцент, Russo One в заголовках.
+   Файл рассчитан на стандартные темы EasyDonate (neon, spirit, colibri).
+   ========================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Russo+One&family=Roboto:wght@400;500;700&display=swap');
+
+:root{
+  --dsv-bg:#0a0d0b;
+  --dsv-bg2:#0f1411;
+  --dsv-card:#121a15;
+  --dsv-card2:#16211a;
+  --dsv-line:#1f2b23;
+  --dsv-green:#4cd137;
+  --dsv-green2:#7bf55f;
+  --dsv-red:#e84118;
+  --dsv-amber:#fbc531;
+  --dsv-text:#e7f2ea;
+  --dsv-muted:#8fa397;
+  --dsv-head:'Russo One','Arial Black',sans-serif;
+  --dsv-body:'Roboto',system-ui,-apple-system,sans-serif;
+  --dsv-shadow:0 4px 0 #2e8a22;
+
+  /* Bootstrap 5 переменные, если тема на нём */
+  --bs-body-bg:var(--dsv-bg);
+  --bs-body-color:var(--dsv-text);
+  --bs-border-color:var(--dsv-line);
+  --bs-primary:var(--dsv-green);
+  --bs-link-color:var(--dsv-green2);
+  --bs-link-hover-color:#ffffff;
+}
+
+/* ---------- База ---------- */
+html, body, body.light-theme, body.dark-theme{
+  background-color:var(--dsv-bg) !important;
+  color:var(--dsv-text) !important;
+  font-family:var(--dsv-body) !important;
+}
+
+body{
+  background-image:
+    linear-gradient(rgba(76,209,55,.045) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(76,209,55,.045) 1px,transparent 1px) !important;
+  background-size:36px 36px !important;
+  background-attachment:fixed !important;
+  min-height:100vh;
+}
+
+body.light-theme{
+  background-image:
+    linear-gradient(rgba(76,209,55,.045) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(76,209,55,.045) 1px,transparent 1px) !important;
+}
+
+::selection{background:rgba(76,209,55,.35) !important;color:#fff !important}
+
+h1,h2,h3,h4,h5,h6,
+.h1,.h2,.h3,.h4,.h5,.h6,
+.display-1,.display-2,.display-3,.display-4{
+  font-family:var(--dsv-head) !important;
+  color:var(--dsv-text) !important;
+  letter-spacing:.02em;
+}
+
+p,li,span,div,label,small,.small,.text-sm{
+  font-family:var(--dsv-body);
+}
+
+a{color:var(--dsv-green2) !important;transition:color .15s}
+a:hover{color:#ffffff !important;text-decoration:none}
+
+strong,b,.font-weight-bold,.font-weight-bolder,.font-weight-boldest{
+  color:var(--dsv-text);
+}
+
+code,kbd,pre{
+  font-family:'Consolas',monospace !important;
+  background:rgba(76,209,55,.1) !important;
+  border:1px solid rgba(76,209,55,.25) !important;
+  border-radius:6px !important;
+  color:var(--dsv-green2) !important;
+}
+
+hr{border-color:var(--dsv-line) !important}
+
+/* ---------- Шапка и навигация ---------- */
+.navbar,
+.navbar.navbar-dark,
+.navbar.navbar-light,
+.navbar-theme-dark,
+.navbar-transparent,
+header,
+.header,
+.topbar{
+  background:rgba(10,13,11,.94) !important;
+  border-bottom:1px solid var(--dsv-line) !important;
+  box-shadow:none !important;
+  backdrop-filter:blur(8px);
+}
+
+.navbar-brand,
+.navbar-brand a,
+.logo{
+  font-family:var(--dsv-head) !important;
+  color:var(--dsv-text) !important;
+  letter-spacing:.02em;
+}
+
+.navbar-brand span,
+.navbar-brand .text-primary,
+.logo span{
+  color:var(--dsv-green) !important;
+  text-shadow:0 0 18px rgba(76,209,55,.55);
+}
+
+.navbar .nav-link,
+.navbar-nav .nav-link,
+.spirit-navbar-item,
+.navbar-dropdown-menu-item{
+  color:var(--dsv-muted) !important;
+  font-weight:500 !important;
+  transition:color .15s;
+}
+
+.navbar .nav-link:hover,
+.navbar-nav .nav-link:hover,
+.navbar .nav-link.active,
+.navbar-nav .nav-link.active,
+.spirit-navbar-item:hover,
+.navbar-dropdown-menu-item:hover{
+  color:var(--dsv-green2) !important;
+}
+
+.navbar-toggler{
+  border-color:var(--dsv-line) !important;
+  color:var(--dsv-text) !important;
+}
+
+.navbar-toggler-icon{
+  filter:invert(1) brightness(1.6);
+}
+
+/* ---------- Карточки, блоки, секции ---------- */
+.card,
+.product-card,
+.product-item,
+.product,
+.shop-item,
+.item-card,
+.server-card,
+.server-item,
+.payment-type,
+.payment-type-wrapper,
+.chosen-product,
+.cart,
+.cart-products,
+.list-group-item,
+.dropdown-menu,
+.modal-content,
+.offcanvas,
+.accordion-item,
+.table,
+.bg-white,
+.bg-light,
+.bg-dark,
+.bg-secondary{
+  background-color:var(--dsv-card) !important;
+  border-color:var(--dsv-line) !important;
+  color:var(--dsv-text) !important;
+}
+
+.card,
+.product-card,
+.product-item,
+.shop-item,
+.item-card,
+.server-card,
+.payment-type,
+.chosen-product,
+.modal-content{
+  border:1px solid var(--dsv-line) !important;
+  border-radius:14px !important;
+  box-shadow:0 10px 28px rgba(0,0,0,.32) !important;
+  overflow:hidden;
+  transition:transform .15s,border-color .15s,box-shadow .15s;
+}
+
+.card:hover,
+.product-card:hover,
+.product-item:hover,
+.shop-item:hover,
+.item-card:hover,
+.server-card:hover,
+.payment-type:hover{
+  transform:translateY(-3px);
+  border-color:rgba(76,209,55,.55) !important;
+  box-shadow:0 16px 38px rgba(0,0,0,.45) !important;
+}
+
+/* в модалке карточки это строки выбора оплаты, их не поднимаем */
+.modal .card:hover,
+.modal .payment-type:hover{
+  transform:none;
+}
+
+.card-body,.card-header,.card-footer{
+  border-color:var(--dsv-line) !important;
+  background:transparent !important;
+}
+
+/* картинки товаров */
+.card img,
+.product-card img,
+.product-item img,
+.shop-item img,
+.item-card img{
+  border-radius:10px;
+}
+
+/* ---------- Кнопки ---------- */
+.btn,
+.pay-button,
+.btn-buy,
+.btn-pay{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  border:1px solid transparent !important;
+  border-radius:8px !important;
+  padding:12px 22px !important;
+  font-family:var(--dsv-head) !important;
+  font-size:14px !important;
+  line-height:1.2 !important;
+  letter-spacing:.03em !important;
+  text-transform:uppercase !important;
+  text-decoration:none !important;
+  white-space:nowrap;
+  transition:transform .15s,box-shadow .15s,background .15s,border-color .15s,color .15s;
+  cursor:pointer;
+}
+
+.btn-primary,
+.btn-success,
+.btn-theme,
+.pay-button,
+.btn-buy,
+.btn-pay,
+button[type="submit"].btn:not(.btn-link):not(.btn-outline-primary){
+  background:var(--dsv-green) !important;
+  border-color:var(--dsv-green) !important;
+  color:#06140a !important;
+  box-shadow:var(--dsv-shadow) !important;
+}
+
+.btn-primary:hover,
+.btn-success:hover,
+.btn-theme:hover,
+.pay-button:hover,
+.btn-buy:hover,
+.btn-pay:hover,
+button[type="submit"].btn:not(.btn-link):not(.btn-outline-primary):hover{
+  background:var(--dsv-green2) !important;
+  border-color:var(--dsv-green2) !important;
+  color:#06140a !important;
+  transform:translateY(-2px);
+  box-shadow:0 6px 0 #2e8a22 !important;
+}
+
+.btn-primary:active,
+.btn-success:active,
+.pay-button:active,
+.btn-buy:active{
+  transform:translateY(2px);
+  box-shadow:0 2px 0 #2e8a22 !important;
+}
+
+.btn-outline-primary,
+.btn-outline-light,
+.btn-outline-secondary,
+.btn-secondary,
+.btn-light,
+.btn-dark,
+.btn-default{
+  background:rgba(255,255,255,.03) !important;
+  border-color:var(--dsv-line) !important;
+  color:var(--dsv-text) !important;
+  box-shadow:none !important;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-light:hover,
+.btn-outline-secondary:hover,
+.btn-secondary:hover,
+.btn-light:hover,
+.btn-dark:hover,
+.btn-default:hover{
+  background:rgba(76,209,55,.08) !important;
+  border-color:var(--dsv-green) !important;
+  color:var(--dsv-green2) !important;
+}
+
+.btn-danger{
+  background:rgba(232,65,24,.14) !important;
+  border-color:rgba(232,65,24,.45) !important;
+  color:#ff8a75 !important;
+  box-shadow:none !important;
+}
+
+.btn-danger:hover{
+  background:rgba(232,65,24,.26) !important;
+  color:#ffb3a3 !important;
+}
+
+.btn-link{
+  background:none !important;
+  border:none !important;
+  color:var(--dsv-green2) !important;
+  box-shadow:none !important;
+  padding:6px 8px !important;
+  text-transform:none !important;
+}
+
+.btn-link:hover{color:#ffffff !important}
+
+.btn:disabled,.btn.disabled{
+  opacity:.5 !important;
+  cursor:not-allowed !important;
+  transform:none !important;
+}
+
+/* ---------- Поля ввода ---------- */
+.form-control,
+.custom-select,
+.custom-file-label,
+.input-group-text,
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select{
+  background-color:var(--dsv-bg2) !important;
+  border:1px solid var(--dsv-line) !important;
+  border-radius:8px !important;
+  color:var(--dsv-text) !important;
+  font-family:var(--dsv-body) !important;
+  box-shadow:none !important;
+}
+
+.form-control:focus,
+.custom-select:focus,
+input:not([type="checkbox"]):not([type="radio"]):focus,
+textarea:focus,
+select:focus{
+  background-color:var(--dsv-bg2) !important;
+  border-color:var(--dsv-green) !important;
+  color:#ffffff !important;
+  box-shadow:0 0 0 3px rgba(76,209,55,.16) !important;
+  outline:none !important;
+}
+
+.form-control::placeholder,
+input::placeholder,
+textarea::placeholder{
+  color:#6f8478 !important;
+  opacity:1 !important;
+}
+
+.input-group-text{
+  color:var(--dsv-muted) !important;
+}
+
+.custom-control-input:checked ~ .custom-control-label::before{
+  background-color:var(--dsv-green) !important;
+  border-color:var(--dsv-green) !important;
+}
+
+.custom-control-label::before{
+  background-color:var(--dsv-bg2) !important;
+  border-color:var(--dsv-line) !important;
+}
+
+/* ---------- Цены, бейджи, статусы ---------- */
+.price,
+.product-price,
+.cart-cost,
+.cost,
+.amount,
+.font-weight-boldest{
+  font-family:var(--dsv-head) !important;
+  color:var(--dsv-green2) !important;
+  letter-spacing:.02em;
+}
+
+.badge{
+  border-radius:99px !important;
+  font-family:var(--dsv-head) !important;
+  font-size:10px !important;
+  letter-spacing:.08em !important;
+  text-transform:uppercase !important;
+  padding:4px 9px !important;
+  border:1px solid transparent !important;
+}
+
+.badge-primary,.badge-success{
+  background:rgba(76,209,55,.14) !important;
+  border-color:rgba(76,209,55,.45) !important;
+  color:var(--dsv-green2) !important;
+}
+
+.badge-warning{
+  background:rgba(251,197,49,.14) !important;
+  border-color:rgba(251,197,49,.5) !important;
+  color:var(--dsv-amber) !important;
+}
+
+.badge-danger{
+  background:rgba(232,65,24,.14) !important;
+  border-color:rgba(232,65,24,.5) !important;
+  color:#ff8a75 !important;
+}
+
+.badge-secondary,.badge-light,.badge-dark{
+  background:rgba(255,255,255,.06) !important;
+  border-color:var(--dsv-line) !important;
+  color:var(--dsv-muted) !important;
+}
+
+/* ---------- Таблицы и корзина ---------- */
+.table{
+  color:var(--dsv-text) !important;
+  border-color:var(--dsv-line) !important;
+}
+
+.table thead th{
+  border-color:var(--dsv-line) !important;
+  color:var(--dsv-muted) !important;
+  font-family:var(--dsv-head) !important;
+  font-size:11px !important;
+  letter-spacing:.12em !important;
+  text-transform:uppercase !important;
+}
+
+.table td,.table th{
+  border-color:var(--dsv-line) !important;
+  vertical-align:middle;
+}
+
+.table-striped tbody tr:nth-of-type(odd){
+  background:rgba(255,255,255,.02) !important;
+}
+
+.table-hover tbody tr:hover{
+  background:rgba(76,209,55,.06) !important;
+  color:var(--dsv-text) !important;
+}
+
+/* ---------- Модальные окна и оплата ---------- */
+.modal-content{
+  background:var(--dsv-card) !important;
+  border:1px solid var(--dsv-line) !important;
+  border-radius:14px !important;
+  box-shadow:0 24px 70px rgba(0,0,0,.6) !important;
+}
+
+.modal-header,.modal-footer{
+  border-color:var(--dsv-line) !important;
+}
+
+.modal-body{
+  background:var(--dsv-card) !important;
+  color:var(--dsv-text) !important;
+}
+
+.modal-body[style]{
+  background:var(--dsv-card) !important;
+}
+
+.modal-backdrop{
+  background:#040705 !important;
+}
+
+.modal-backdrop.show{opacity:.82 !important}
+
+.close,.modal .close{
+  color:var(--dsv-text) !important;
+  text-shadow:none !important;
+  opacity:.75 !important;
+}
+
+.close:hover{color:#ff8a75 !important;opacity:1 !important}
+
+/* строки выбора способа оплаты внутри модалки */
+.modal .card,
+.modal .payment-type,
+.modal .payment-type-wrapper{
+  background:var(--dsv-card2) !important;
+  border:1px solid var(--dsv-line) !important;
+  border-radius:10px !important;
+  box-shadow:none !important;
+}
+
+.modal .card:hover,
+.modal .payment-type:hover{
+  border-color:var(--dsv-green) !important;
+  background:rgba(76,209,55,.06) !important;
+}
+
+/* ---------- Списки, меню, подсказки ---------- */
+.dropdown-menu{
+  background:var(--dsv-card) !important;
+  border:1px solid var(--dsv-line) !important;
+  box-shadow:0 18px 40px rgba(0,0,0,.5) !important;
+}
+
+.dropdown-item{
+  color:var(--dsv-text) !important;
+}
+
+.dropdown-item:hover,.dropdown-item:focus{
+  background:rgba(76,209,55,.1) !important;
+  color:var(--dsv-green2) !important;
+}
+
+.dropdown-divider{border-color:var(--dsv-line) !important}
+
+.list-group-item{
+  background:var(--dsv-card) !important;
+  border-color:var(--dsv-line) !important;
+  color:var(--dsv-text) !important;
+}
+
+.page-link{
+  background:var(--dsv-card) !important;
+  border-color:var(--dsv-line) !important;
+  color:var(--dsv-green2) !important;
+}
+
+.page-link:hover{
+  background:rgba(76,209,55,.1) !important;
+  border-color:var(--dsv-green) !important;
+  color:#ffffff !important;
+}
+
+.page-item.active .page-link{
+  background:var(--dsv-green) !important;
+  border-color:var(--dsv-green) !important;
+  color:#06140a !important;
+}
+
+/* ---------- Уведомления ---------- */
+.alert{
+  background:var(--dsv-card) !important;
+  border:1px solid var(--dsv-line) !important;
+  color:var(--dsv-text) !important;
+  border-radius:10px !important;
+}
+
+.alert-success{
+  border-color:rgba(76,209,55,.45) !important;
+  background:rgba(76,209,55,.08) !important;
+}
+
+.alert-warning{
+  border-color:rgba(251,197,49,.45) !important;
+  background:rgba(251,197,49,.08) !important;
+}
+
+.alert-danger{
+  border-color:rgba(232,65,24,.45) !important;
+  background:rgba(232,65,24,.08) !important;
+}
+
+.alert-info{
+  border-color:rgba(123,213,255,.4) !important;
+  background:rgba(123,213,255,.07) !important;
+}
+
+/* ---------- Футер ---------- */
+footer,.footer,.footer-link{
+  background-color:var(--dsv-bg2) !important;
+  border-color:var(--dsv-line) !important;
+  color:var(--dsv-muted) !important;
+}
+
+footer a,.footer a,.footer-link a{
+  color:var(--dsv-green2) !important;
+}
+
+footer a:hover,.footer a:hover{
+  color:#ffffff !important;
+}
+
+/* ---------- Мелочи ---------- */
+.border,.border-top,.border-bottom,.border-left,.border-right{
+  border-color:var(--dsv-line) !important;
+}
+
+.shadow,.shadow-sm,.shadow-lg{
+  box-shadow:0 10px 28px rgba(0,0,0,.32) !important;
+}
+
+.skeleton-box{
+  background:linear-gradient(90deg,#121a15,#1a261e,#121a15) !important;
+}
+
+.progress{
+  background:var(--dsv-bg2) !important;
+  border-radius:99px;
+}
+
+.progress-bar{
+  background:var(--dsv-green) !important;
+}
+
+/* светлые утилиты, которые темы любят ставить на белых блоках */
+.text-black,.text-dark{
+  color:var(--dsv-text) !important;
+}
+
+.text-white{
+  color:#ffffff !important;
+}
+
+.text-muted,.text-secondary{
+  color:var(--dsv-muted) !important;
+}
+
+.text-primary{
+  color:var(--dsv-green2) !important;
+}
+
+.bg-transparent{
+  background:transparent !important;
+}
+
+/* скроллбар */
+*{
+  scrollbar-width:thin;
+  scrollbar-color:var(--dsv-line) var(--dsv-bg);
+}
+
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--dsv-bg)}
+::-webkit-scrollbar-thumb{
+  background:var(--dsv-line);
+  border-radius:8px;
+  border:2px solid var(--dsv-bg);
+}
+::-webkit-scrollbar-thumb:hover{background:#2b3c31}
+
+/* ---------- Мобильная версия ---------- */
+@media (max-width:991px){
+  .navbar-collapse{
+    background:var(--dsv-bg) !important;
+    border:1px solid var(--dsv-line) !important;
+    border-radius:10px;
+    padding:14px;
+    margin-top:10px;
+  }
+
+  .btn,.pay-button{
+    padding:11px 16px !important;
+  }
+}
+
+@media (max-width:575px){
+  .btn,.pay-button{
+    font-size:12px !important;
+  }
+
+  .card,.product-card,.product-item,.shop-item{
+    border-radius:12px !important;
+  }
+}
