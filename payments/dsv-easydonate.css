@@ -32,6 +32,34 @@
   --bs-link-hover-color:#ffffff;
 }
 
+/* ---------- Переменные тем EasyDonate ---------- */
+/* spirit и часть других тем красят фон и акцент через свои переменные.
+   Переопределяем их с высоким приоритетом, иначе белая тема останется белой. */
+html body,
+html body.dark-theme,
+html body.light-theme,
+:root{
+  --body-background-color:#0a0d0b !important;
+  --color-accent:#4cd137 !important;
+  --color-accent-125:rgba(76,209,55,.075) !important;
+  --color-accent-15:rgba(76,209,55,.15) !important;
+  --color-accent-25:rgba(76,209,55,.25) !important;
+  --color-accent-50:rgba(76,209,55,.5) !important;
+  --color-accent-75:rgba(76,209,55,.75) !important;
+  --color-default:#e7f2ea !important;
+  --color-default-inverse:#06140a !important;
+  --color-muted:#8fa397 !important;
+  --color-muted-inverse:rgba(6,20,10,.75) !important;
+  --color-neutral:rgba(143,163,151,.8) !important;
+  --spirit-btn-transparent-background-color-hover:rgba(76,209,55,.08) !important;
+  --spirit-bg-05:rgba(255,255,255,.03) !important;
+  --spirit-bg-10:rgba(255,255,255,.06) !important;
+  --pay-button-background-color:#4cd137 !important;
+  --pay-button-color:#06140a !important;
+  --pay-button-badge-background-color:#06140a !important;
+  --pay-button-badge-color:#7bf55f !important;
+}
+
 /* ---------- База ---------- */
 html, body, body.light-theme, body.dark-theme{
   background-color:var(--dsv-bg) !important;
@@ -68,8 +96,8 @@ p,li,span,div,label,small,.small,.text-sm{
   font-family:var(--dsv-body);
 }
 
-a{color:var(--dsv-green2) !important;transition:color .15s}
-a:hover{color:#ffffff !important;text-decoration:none}
+a,.text-action,.link-accent{color:var(--dsv-green2) !important;transition:color .15s}
+a:hover,.text-action:hover,.link-accent:hover{color:#ffffff !important;text-decoration:none}
 
 strong,b,.font-weight-bold,.font-weight-bolder,.font-weight-boldest{
   color:var(--dsv-text);
@@ -314,6 +342,78 @@ button[type="submit"].btn:not(.btn-link):not(.btn-outline-primary):hover{
   color:#ffb3a3 !important;
 }
 
+/* акцентные классы темы spirit и похожих */
+html body .btn.btn-accent{
+  background:var(--dsv-green) !important;
+  border-color:var(--dsv-green) !important;
+  color:#06140a !important;
+  box-shadow:var(--dsv-shadow) !important;
+  background-image:none !important;
+}
+
+html body .btn.btn-accent:hover{
+  background:var(--dsv-green2) !important;
+  border-color:var(--dsv-green2) !important;
+  color:#06140a !important;
+  transform:translateY(-2px);
+  box-shadow:0 6px 0 #2e8a22 !important;
+}
+
+html body .btn.btn-outline-accent{
+  background:rgba(255,255,255,.03) !important;
+  border-color:var(--dsv-line) !important;
+  color:var(--dsv-text) !important;
+  box-shadow:none !important;
+}
+
+html body .btn.btn-outline-accent:hover{
+  background:rgba(76,209,55,.08) !important;
+  border-color:var(--dsv-green) !important;
+  color:var(--dsv-green2) !important;
+}
+
+/* темы делают кнопки пилюлями, возвращаем прямоугольные скругления DSV */
+html body .btn.rounded-pill,
+html body .pay-button.rounded-pill{
+  border-radius:8px !important;
+}
+
+/* ---------- Кнопка оплаты spirit ---------- */
+html body .pay-button{
+  border-radius:8px !important;
+  background:var(--dsv-green) !important;
+  color:#06140a !important;
+  box-shadow:var(--dsv-shadow) !important;
+  background-image:none !important;
+}
+
+html body .pay-button:hover{
+  background:var(--dsv-green2) !important;
+  transform:translateY(-2px);
+  box-shadow:0 6px 0 #2e8a22 !important;
+}
+
+html body .pay-button-badge{
+  background:#06140a !important;
+  color:var(--dsv-green2) !important;
+  border:1px solid rgba(123,245,95,.35) !important;
+}
+
+html body .pay-button-sum{
+  color:#06140a !important;
+  font-family:var(--dsv-head) !important;
+}
+
+html body .pay-button-logo,
+html body .pay-button-content{
+  color:#06140a !important;
+}
+
+html body .pay-button-logo svg path{
+  fill:currentColor !important;
+}
+
+
 .btn-link{
   background:none !important;
   border:none !important;
@@ -425,6 +525,33 @@ textarea::placeholder{
   border-color:var(--dsv-line) !important;
   color:var(--dsv-muted) !important;
 }
+
+html body .badge.badge-accent{
+  background:var(--dsv-green) !important;
+  border-color:var(--dsv-green) !important;
+  color:#06140a !important;
+}
+
+html body .badge.badge-accent-blured{
+  background:rgba(76,209,55,.15) !important;
+  border-color:rgba(76,209,55,.45) !important;
+  color:var(--dsv-green2) !important;
+  backdrop-filter:none !important;
+}
+
+.text-accent{
+  color:var(--dsv-green2) !important;
+}
+
+.bg-accent{
+  background:var(--dsv-green) !important;
+  color:#06140a !important;
+}
+
+.border-accent{
+  border-color:var(--dsv-green) !important;
+}
+
 
 /* ---------- Таблицы и корзина ---------- */
 .table{
