@@ -854,3 +854,17 @@ html body .text-primary{
     border-radius:12px !important;
   }
 }
+/* Hero background: use the clean image hosted on our site,
+   in case the panel still has the old one with baked-in title. */
+#welcome-section .jarallax-container > div{
+  background-image:url("https://protocold7.ru/dsv-zombi/payments/easydonate-bg.png") !important;
+  background-size:cover !important;
+  background-position:center !important;
+  background-repeat:no-repeat !important;
+}
+
+/* soft darkening behind the hero text */
+#welcome-section .overlay-dark:before{
+  background:radial-gradient(600px 420px at 50% 45%,rgba(6,20,10,.30),rgba(6,20,10,.72) 75%) !important;
+  opacity:1 !important;
+}
