@@ -1,6 +1,6 @@
-const CACHE = 'dsv-zombi-v3'
+const CACHE = 'dsv-zombi-v4'
 const OFFLINE_URL = './offline.html'
-const PRECACHE = ['./', './index.html', './offline.html', './manifest.webmanifest', './favicon.svg']
+const PRECACHE = ['./', './index.html', './lore.html', './offline.html', './manifest.webmanifest', './favicon.svg']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
