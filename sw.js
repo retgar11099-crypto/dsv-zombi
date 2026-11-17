@@ -1,4 +1,4 @@
-const CACHE = 'dsv-zombi-v4'
+const CACHE = 'dsv-zombi-v5'
 const OFFLINE_URL = './offline.html'
 const PRECACHE = ['./', './index.html', './lore.html', './offline.html', './manifest.webmanifest', './favicon.svg']
 
